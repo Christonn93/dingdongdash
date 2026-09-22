@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { AppThemeProvider } from "@/contexts/app-theme-context";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { queryClient } from "@/utils/trpc";
 
 export const unstable_settings = {
@@ -29,6 +30,8 @@ function StackLayout() {
 }
 
 export default function Layout() {
+	usePushNotifications();
+
 	return (
 		<QueryClientProvider client={queryClient}>
 			<GestureHandlerRootView style={{ flex: 1 }}>
