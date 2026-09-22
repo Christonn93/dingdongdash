@@ -128,14 +128,16 @@ function ProfileRoute() {
 		<div className="mx-auto w-full max-w-2xl space-y-6 py-8">
 			<Reveal>
 				<div className="rounded-2xl border p-6">
-					<div className="flex items-center justify-between">
-						<div>
-							<h1 className="font-display font-extrabold text-2xl tracking-tight">
+					<div className="flex items-center justify-between gap-3">
+						<div className="min-w-0">
+							<h1 className="truncate font-display font-extrabold text-2xl tracking-tight">
 								{user?.name}
 							</h1>
-							<p className="text-muted-foreground text-sm">{user?.email}</p>
+							<p className="truncate text-muted-foreground text-sm">
+								{user?.email}
+							</p>
 						</div>
-						<div className="text-right">
+						<div className="shrink-0 text-right">
 							<AnimatedNumber
 								className="font-display font-extrabold text-3xl text-primary tracking-tight"
 								value={points ?? 0}

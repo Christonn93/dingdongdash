@@ -65,10 +65,10 @@ export function createAuth(
 		emailAndPassword: {
 			enabled: true,
 			requireEmailVerification: true,
-			sendResetPassword: async ({ user, url }) => {
+			sendResetPassword: async ({ url, user: signingUser }) => {
 				await sendAuthEmail(
 					env,
-					user.email,
+					signingUser.email,
 					"Reset your DingDongDitch password",
 					`<p>Click the link below to reset your password. It expires in one hour.</p><p><a href="${url}">Reset my password</a></p>`
 				);
@@ -77,10 +77,10 @@ export function createAuth(
 		emailVerification: {
 			autoSignInAfterVerification: true,
 			sendOnSignUp: true,
-			sendVerificationEmail: async ({ user, url }) => {
+			sendVerificationEmail: async ({ url, user: signingUser }) => {
 				await sendAuthEmail(
 					env,
-					user.email,
+					signingUser.email,
 					"Verify your DingDongDitch email",
 					`<p>Almost there! Confirm your email to start ringing doorbells.</p><p><a href="${url}">Verify my email</a></p>`
 				);

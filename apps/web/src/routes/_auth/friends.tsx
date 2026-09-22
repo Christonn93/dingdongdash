@@ -268,23 +268,23 @@ function FriendsRoute() {
 													</div>
 												</div>
 												<div className="flex items-center gap-2">
-<Button
-													onClick={() =>
-														muteMutation.mutate({
-															muted: !friendship.muted,
-															targetUserId: friendship.friend.id,
-														})
-													}
-													size="sm"
-													variant="ghost"
-												>
-													{friendship.muted ? "Unmute" : "Mute"}
-												</Button>
-												<Button
-													disabled={ringMutation.isPending}
-													onClick={() => handleRing(friendship.friend.id)}
-													size="sm"
-												>
+													<Button
+														onClick={() =>
+															muteMutation.mutate({
+																muted: !friendship.muted,
+																targetUserId: friendship.friend.id,
+															})
+														}
+														size="sm"
+														variant="ghost"
+													>
+														{friendship.muted ? "Unmute" : "Mute"}
+													</Button>
+													<Button
+														disabled={ringMutation.isPending}
+														onClick={() => handleRing(friendship.friend.id)}
+														size="sm"
+													>
 														Ring
 													</Button>
 												</div>

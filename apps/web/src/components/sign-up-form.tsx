@@ -86,10 +86,10 @@ export default function SignUpForm({
 						/>
 					</svg>
 				</span>
-				<h3 className="font-display text-lg font-extrabold tracking-tight">
+				<h3 className="font-display font-extrabold text-lg tracking-tight">
 					Check your inbox
 				</h3>
-				<p className="text-sm text-muted-foreground">
+				<p className="text-muted-foreground text-sm">
 					We sent a verification link to{" "}
 					<span className="font-medium text-foreground">
 						{form.state.values.email}

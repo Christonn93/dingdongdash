@@ -29,7 +29,7 @@ function RouteComponent() {
 		<div className="mx-auto w-full max-w-3xl px-4 py-8">
 			<Reveal>
 				<div className="mb-8">
-					<h1 className="font-display font-extrabold text-2xl tracking-tight">
+					<h1 className="break-words font-display font-extrabold text-2xl tracking-tight">
 						Welcome back, {user?.name}
 					</h1>
 					<p className="mt-1 text-muted-foreground text-sm">

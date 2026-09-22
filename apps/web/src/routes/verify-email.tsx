@@ -49,7 +49,7 @@ function VerifyEmailRoute() {
 								/>
 							</svg>
 						</span>
-						<CardTitle className="font-display text-xl font-extrabold tracking-tight">
+						<CardTitle className="font-display font-extrabold text-xl tracking-tight">
 							{verified ? "Email verified!" : "Verifying…"}
 						</CardTitle>
 						<CardDescription>

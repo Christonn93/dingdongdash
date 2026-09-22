@@ -20,7 +20,9 @@ export default function SignInForm({
 		from: "/",
 	});
 	const { isPending } = authClient.useSession();
-	const [needsVerification, setNeedsVerification] = useState<string | null>(null);
+	const [needsVerification, setNeedsVerification] = useState<string | null>(
+		null
+	);
 	const [resending, setResending] = useState(false);
 
 	const handleResend = useCallback(async () => {
@@ -85,12 +87,14 @@ export default function SignInForm({
 
 	return (
 		<div className="space-y-4">
-			{needsVerification && (
+			{needsVerification ? (
 				<div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
 					<p className="text-muted-foreground">
 						You need to verify your email before signing in. We can resend the
 						link to{" "}
-						<span className="font-medium text-foreground">{needsVerification}</span>
+						<span className="font-medium text-foreground">
+							{needsVerification}
+						</span>
 						.
 					</p>
 					<Button
@@ -102,7 +106,7 @@ export default function SignInForm({
 						{resending ? "Sending…" : "Resend verification email"}
 					</Button>
 				</div>
-			)}
+			) : null}
 			<form
 				className="space-y-4"
 				onSubmit={(e) => {

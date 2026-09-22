@@ -1,5 +1,5 @@
-import { motion, useReducedMotion } from "motion/react";
 import type { Target } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
 
 import { doorSpring } from "@/lib/motion";
