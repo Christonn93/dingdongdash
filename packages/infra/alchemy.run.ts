@@ -57,13 +57,16 @@ export default Alchemy.Stack(
 			assets: {
 				htmlHandling: "auto-trailing-slash",
 				notFoundHandling: "single-page-application",
+				runWorkerFirst: ["/api/*", "/trpc/*"],
 			},
 			dev: {
 				port: 3001,
 			},
 			env: {
-				VITE_SERVER_URL: serverWorker.url.as<string>(),
+				SERVER: serverWorker,
+				VITE_SERVER_URL: "",
 			},
+			main: "./worker.ts",
 			rootDir: "../../apps/web",
 		});
 
