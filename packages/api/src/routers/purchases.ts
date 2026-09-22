@@ -58,7 +58,9 @@ export const purchasesRouter = router({
 				return { url };
 			}
 
-			const useSandbox = input.sandbox && Boolean(ctx.polarSandboxAccessToken);
+			const useSandbox =
+				input.sandbox ||
+				(!ctx.polarAccessToken && Boolean(ctx.polarSandboxAccessToken));
 			const accessToken = useSandbox
 				? ctx.polarSandboxAccessToken
 				: ctx.polarAccessToken;
@@ -94,7 +96,9 @@ export const purchasesRouter = router({
 	getCatalog: publicProcedure.query(({ ctx }) => ({
 		items: catalogItems(),
 		paymentMethods: [
-			...(ctx.polarAccessToken ? (["polar"] as const) : []),
+			...(ctx.polarAccessToken || ctx.polarSandboxAccessToken
+				? (["polar"] as const)
+				: []),
 			...(ctx.stripeSecretKey ? (["stripe"] as const) : []),
 		],
 		polarSandbox: Boolean(ctx.polarSandboxAccessToken),
