@@ -72,7 +72,7 @@ export default Alchemy.Stack(
 				port: 3001,
 			},
 			env: isDev
-				? { VITE_SERVER_URL: serverWorker.url.as<string>() }
+				? { VITE_SERVER_URL: "" }
 				: { SERVER: serverWorker, VITE_SERVER_URL: "" },
 			...(isDev ? {} : { main: "./worker.ts" }),
 			rootDir: "../../apps/web",
