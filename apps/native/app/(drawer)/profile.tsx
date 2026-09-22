@@ -106,6 +106,46 @@ export default function ProfileScreen() {
 		queryClient.clear();
 	}, []);
 
+	const [currentPassword, setCurrentPassword] = useState("");
+	const [newPassword, setNewPassword] = useState("");
+	const [confirmPassword, setConfirmPassword] = useState("");
+	const [changingPassword, setChangingPassword] = useState(false);
+
+	const handleChangePassword = async () => {
+		if (newPassword.length < 8) {
+			toast.show({
+				label: "New password must be at least 8 characters",
+				variant: "danger",
+			});
+			return;
+		}
+		if (newPassword !== confirmPassword) {
+			toast.show({ label: "Passwords don't match", variant: "danger" });
+			return;
+		}
+		setChangingPassword(true);
+		try {
+			const { error } = await authClient.changePassword({
+				currentPassword,
+				newPassword,
+				revokeOtherSessions: true,
+			});
+			if (error) {
+				toast.show({
+					label: error.message ?? "Could not update your password",
+					variant: "danger",
+				});
+				return;
+			}
+			toast.show({ label: "Password updated", variant: "success" });
+			setCurrentPassword("");
+			setNewPassword("");
+			setConfirmPassword("");
+		} finally {
+			setChangingPassword(false);
+		}
+	};
+
 	return (
 		<Container>
 			<ScrollView className="flex-1" contentContainerClassName="p-4">
@@ -261,6 +301,63 @@ export default function ProfileScreen() {
 							</Button>
 						</View>
 					)}
+				</Surface>
+
+				<Surface className="mb-4 rounded-lg p-4" variant="secondary">
+					<Text className="mb-1 font-medium text-foreground">Password</Text>
+					<Text className="mb-3 text-muted text-xs">
+						Update your password. Other signed-in devices will be signed out.
+					</Text>
+					<View className="gap-3">
+						<TextField>
+							<Label>Current password</Label>
+							<Input
+								autoComplete="password"
+								onChangeText={setCurrentPassword}
+								placeholder="Current password"
+								secureTextEntry
+								textContentType="password"
+								value={currentPassword}
+							/>
+						</TextField>
+						<TextField>
+							<Label>New password</Label>
+							<Input
+								autoComplete="new-password"
+								onChangeText={setNewPassword}
+								placeholder="At least 8 characters"
+								secureTextEntry
+								textContentType="newPassword"
+								value={newPassword}
+							/>
+						</TextField>
+						<TextField>
+							<Label>Confirm new password</Label>
+							<Input
+								autoComplete="new-password"
+								onChangeText={setConfirmPassword}
+								placeholder="Repeat new password"
+								secureTextEntry
+								textContentType="newPassword"
+								value={confirmPassword}
+							/>
+						</TextField>
+						<Button
+							isDisabled={
+								changingPassword ||
+								!currentPassword ||
+								!newPassword ||
+								!confirmPassword
+							}
+							onPress={handleChangePassword}
+						>
+							{changingPassword ? (
+								<Spinner color="default" size="sm" />
+							) : (
+								<Button.Label>Update password</Button.Label>
+							)}
+						</Button>
+					</View>
 				</Surface>
 
 				<Surface className="mb-4 rounded-lg p-4" variant="secondary">

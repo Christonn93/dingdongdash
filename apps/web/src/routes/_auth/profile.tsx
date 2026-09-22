@@ -12,11 +12,12 @@ import { Checkbox } from "@dingdongdash/ui/components/checkbox";
 import { Input } from "@dingdongdash/ui/components/input";
 import { Label } from "@dingdongdash/ui/components/label";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { type FormEvent, useCallback, useState } from "react";
 import { toast } from "sonner";
 import { AnimatedNumber } from "@/components/animated-number";
 import { Reveal } from "@/components/reveal";
+import { authClient } from "@/lib/auth-client";
 import { hashPhoneNumber, normalizePhoneNumber } from "@/utils/contacts";
 import { trpc } from "@/utils/trpc";
 
@@ -412,6 +413,10 @@ function ProfileRoute() {
 			</Reveal>
 
 			<Reveal index={4}>
+				<ChangePasswordCard />
+			</Reveal>
+
+			<Reveal index={5}>
 				<div className="rounded-2xl border p-6">
 					<h2 className="mb-4 font-medium">Point history</h2>
 					{ledger.isLoading ? (
@@ -448,7 +453,7 @@ function ProfileRoute() {
 				</div>
 			</Reveal>
 
-			<Reveal index={5}>
+			<Reveal index={6}>
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-base">About</CardTitle>
@@ -536,5 +541,130 @@ function PrefGroup({
 				))}
 			</div>
 		</div>
+	);
+}
+
+function ChangePasswordCard() {
+	const [currentPassword, setCurrentPassword] = useState("");
+	const [newPassword, setNewPassword] = useState("");
+	const [confirmPassword, setConfirmPassword] = useState("");
+	const [changingPassword, setChangingPassword] = useState(false);
+
+	const handleCurrentPasswordChange = useCallback(
+		(event: React.ChangeEvent<HTMLInputElement>) => {
+			setCurrentPassword(event.target.value);
+		},
+		[]
+	);
+
+	const handleNewPasswordChange = useCallback(
+		(event: React.ChangeEvent<HTMLInputElement>) => {
+			setNewPassword(event.target.value);
+		},
+		[]
+	);
+
+	const handleConfirmPasswordChange = useCallback(
+		(event: React.ChangeEvent<HTMLInputElement>) => {
+			setConfirmPassword(event.target.value);
+		},
+		[]
+	);
+
+	const handleChangePassword = useCallback(
+		async (event: FormEvent<HTMLFormElement>) => {
+			event.preventDefault();
+			if (newPassword.length < 8) {
+				toast.error("New password must be at least 8 characters");
+				return;
+			}
+			if (newPassword !== confirmPassword) {
+				toast.error("Passwords don't match");
+				return;
+			}
+			setChangingPassword(true);
+			try {
+				const { error } = await authClient.changePassword({
+					currentPassword,
+					newPassword,
+					revokeOtherSessions: true,
+				});
+				if (error) {
+					toast.error(error.message ?? "Could not update your password");
+					return;
+				}
+				toast.success("Password updated");
+				setCurrentPassword("");
+				setNewPassword("");
+				setConfirmPassword("");
+			} finally {
+				setChangingPassword(false);
+			}
+		},
+		[confirmPassword, currentPassword, newPassword]
+	);
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-base">Password</CardTitle>
+				<CardDescription>
+					Update your password. Other signed-in devices will be signed out.
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<form className="space-y-4" onSubmit={handleChangePassword}>
+					<div>
+						<Label htmlFor="current-password">Current password</Label>
+						<Input
+							autoComplete="current-password"
+							id="current-password"
+							onChange={handleCurrentPasswordChange}
+							type="password"
+							value={currentPassword}
+						/>
+					</div>
+					<div>
+						<Label htmlFor="new-password">New password</Label>
+						<Input
+							autoComplete="new-password"
+							id="new-password"
+							onChange={handleNewPasswordChange}
+							type="password"
+							value={newPassword}
+						/>
+					</div>
+					<div>
+						<Label htmlFor="confirm-password">Confirm new password</Label>
+						<Input
+							autoComplete="new-password"
+							id="confirm-password"
+							onChange={handleConfirmPasswordChange}
+							type="password"
+							value={confirmPassword}
+						/>
+					</div>
+					<div className="flex items-center gap-3">
+						<Button
+							disabled={
+								changingPassword ||
+								!currentPassword ||
+								!newPassword ||
+								!confirmPassword
+							}
+							type="submit"
+						>
+							{changingPassword ? "Updating…" : "Update password"}
+						</Button>
+						<Link
+							className="font-semibold text-primary text-sm underline-offset-4 hover:underline"
+							to="/forgot-password"
+						>
+							Forgot your current password?
+						</Link>
+					</div>
+				</form>
+			</CardContent>
+		</Card>
 	);
 }
