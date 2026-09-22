@@ -1,3 +1,4 @@
+import { avatarIds } from "@dingdongdash/db/game";
 import {
 	deviceToken,
 	friendship,
@@ -247,6 +248,7 @@ export const usersRouter = router({
 	updateProfile: protectedProcedure
 		.input(
 			z.object({
+				avatarId: z.enum(avatarIds).nullable().optional(),
 				name: z.string().trim().min(2).max(50).optional(),
 				phoneHash: z
 					.string()
@@ -256,7 +258,11 @@ export const usersRouter = router({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const { db, session } = ctx;
-			if (input.name === undefined && input.phoneHash === undefined) {
+			if (
+				input.avatarId === undefined &&
+				input.name === undefined &&
+				input.phoneHash === undefined
+			) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Nothing to update",
@@ -267,6 +273,9 @@ export const usersRouter = router({
 				await db
 					.update(user)
 					.set({
+						...(input.avatarId === undefined
+							? {}
+							: { avatarId: input.avatarId }),
 						...(input.name === undefined ? {} : { name: input.name }),
 						...(input.phoneHash === undefined
 							? {}

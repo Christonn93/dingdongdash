@@ -37,3 +37,25 @@ export const PUSH_FEEDBACK_SKIP_REASONS = [
 	"DeviceNotRegistered",
 	"MessageTooBig",
 ] as const;
+
+/** Curated, selectable local avatars. Rendering lives in `@dingdongdash/ui`. */
+export const avatarIds = [
+	"doorbell",
+	"house",
+	"cat",
+	"dog",
+	"frog",
+	"ghost",
+	"robot",
+	"mushroom",
+	"pizza",
+	"duck",
+	"cloud",
+	"bee",
+	"rocket",
+	"mailbox",
+	"raccoon",
+	"wizard-hat",
+] as const;
+
+export type AvatarId = (typeof avatarIds)[number];

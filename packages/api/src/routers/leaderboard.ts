@@ -14,6 +14,7 @@ export const leaderboardRouter = router({
 
 		const friendRows = await db
 			.select({
+				avatarId: user.avatarId,
 				id: user.id,
 				image: user.image,
 				name: user.name,
@@ -32,6 +33,7 @@ export const leaderboardRouter = router({
 
 		const [myRow] = await db
 			.select({
+				avatarId: user.avatarId,
 				id: user.id,
 				image: user.image,
 				name: user.name,
@@ -75,6 +77,7 @@ export const leaderboardRouter = router({
 		.query(async ({ ctx, input }) => {
 			const rows = await ctx.db
 				.select({
+					avatarId: user.avatarId,
 					id: user.id,
 					image: user.image,
 					name: user.name,

@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@dingdongdash/config": "workspace:*",
+    "@dingdongdash/db": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "catalog:",

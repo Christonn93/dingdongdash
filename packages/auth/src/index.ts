@@ -108,6 +108,11 @@ export function createAuth(
 		],
 		user: {
 			additionalFields: {
+				avatarId: {
+					input: false,
+					required: false,
+					type: "string",
+				},
 				phoneHash: {
 					input: false,
 					required: false,

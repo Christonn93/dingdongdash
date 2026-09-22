@@ -161,6 +161,7 @@ export const ringsRouter = router({
 				expiresAt: ring.expiresAt,
 				id: ring.id,
 				ringer: {
+					avatarId: user.avatarId,
 					id: user.id,
 					image: user.image,
 					name: user.name,

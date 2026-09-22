@@ -13,6 +13,7 @@ import { protectedProcedure, router } from "../index";
 import { generateInviteCode } from "../lib/invites";
 
 const friendColumns = {
+	avatarId: user.avatarId,
 	email: user.email,
 	id: user.id,
 	image: user.image,
