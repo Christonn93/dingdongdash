@@ -8,6 +8,7 @@ import {
 } from "@dingdongdash/ui/components/card";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Reveal } from "@/components/reveal";
@@ -60,7 +61,10 @@ function InviteRoute() {
 		);
 	} else if (accept.isPending) {
 		content = (
-			<p className="text-muted-foreground text-sm">Accepting invite…</p>
+			<div className="flex items-center justify-center gap-2 py-3 text-muted-foreground">
+				<Loader2 className="h-4 w-4 animate-spin" />
+				<span className="text-sm">Accepting invite…</span>
+			</div>
 		);
 	} else if (accept.isError) {
 		content = (
@@ -87,20 +91,20 @@ function InviteRoute() {
 	}
 
 	return (
-		<div className="mx-auto flex w-full max-w-md flex-col items-center justify-center px-4 py-16">
-			<Reveal>
+		<div className="mx-auto flex w-full justify-center px-4 py-14 sm:px-6 sm:py-20">
+			<Reveal className="w-full max-w-sm sm:max-w-md">
 				<Card className="w-full">
 					<CardHeader className="text-center">
-						<CardTitle className="font-display font-extrabold text-xl tracking-tight">
+						<CardTitle className="font-display font-extrabold text-xl tracking-tight sm:text-2xl">
 							{authed ? "Join the friends circle" : "You've been invited"}
 						</CardTitle>
-						<CardDescription>
+						<CardDescription className="text-sm sm:text-base">
 							{authed
 								? "Accepting the invite adds you as friends instantly."
 								: "Sign in or create an account to accept this invite."}
 						</CardDescription>
 					</CardHeader>
-					<CardContent className="flex flex-col items-center gap-4">
+					<CardContent className="flex flex-col items-center gap-4 p-5 sm:p-6">
 						{content}
 					</CardContent>
 				</Card>
