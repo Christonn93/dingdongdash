@@ -174,6 +174,7 @@ export default function Dashboard() {
 					<DailyBonusCard
 						claiming={claimBonus.isPending}
 						onClaim={() => claimBonus.mutate()}
+						onDismiss={() => setBonusDismissed(true)}
 						points={dailyBonus.data.points}
 					/>
 				) : null}
