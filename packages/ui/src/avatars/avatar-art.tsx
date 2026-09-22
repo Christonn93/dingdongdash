@@ -45,6 +45,8 @@ export function AvatarArt({
 			return <RaccoonArt className={className} />;
 		case "wizard-hat":
 			return <WizardHatArt className={className} />;
+		default:
+			return null;
 	}
 }
 
@@ -62,7 +64,14 @@ function DoorbellArt({ className }: { className?: string }) {
 				d="M32 12c7.5 0 13 5.6 13 12.6V27a4 4 0 0 0 4 4h-1.4a4 4 0 0 1-4 4H20.4a4 4 0 0 1-4-4H15a4 4 0 0 0 4-4v-2.4C19 17.6 24.5 12 32 12z"
 				fill={CORAL}
 			/>
-			<path d="M26 16a9 8 0 0 0-3 11" fill="none" opacity="0.5" stroke={CREAM} strokeLinecap="round" strokeWidth="2.4" />
+			<path
+				d="M26 16a9 8 0 0 0-3 11"
+				fill="none"
+				opacity="0.5"
+				stroke={CREAM}
+				strokeLinecap="round"
+				strokeWidth="2.4"
+			/>
 			<rect fill={WOOD} height="13" rx="3.5" width="16" x="24" y="37" />
 			<rect fill={AMBER} height="7" rx="2" width="9" x="27.5" y="40" />
 		</svg>
@@ -92,7 +101,12 @@ function CatArt({ className }: { className?: string }) {
 			<circle cx="26" cy="33" fill={AMBER} r="2.6" />
 			<circle cx="38" cy="33" fill={AMBER} r="2.6" />
 			<path d="M30 39h4l-2 3z" fill={CORAL} />
-			<path d="M20 40l6-1M44 40l-6-1" stroke={CREAM} strokeLinecap="round" strokeWidth="1.8" />
+			<path
+				d="M20 40l6-1M44 40l-6-1"
+				stroke={CREAM}
+				strokeLinecap="round"
+				strokeWidth="1.8"
+			/>
 		</svg>
 	);
 }
@@ -121,9 +135,15 @@ function FrogArt({ className }: { className?: string }) {
 			<circle cx="25" cy="22" fill={INK} r="2.6" />
 			<circle cx="39" cy="22" fill={INK} r="2.6" />
 			<ellipse cx="32" cy="38" fill="#38b864" rx="17" ry="15" />
-			<circle cx="24" cy="40" fill="#f2b8c6" r="3" opacity="0.8" />
-			<circle cx="40" cy="40" fill="#f2b8c6" r="3" opacity="0.8" />
-			<path d="M24 40q8 5 16 0" fill="none" stroke="#1f6e3f" strokeLinecap="round" strokeWidth="2.4" />
+			<circle cx="24" cy="40" fill="#f2b8c6" opacity="0.8" r="3" />
+			<circle cx="40" cy="40" fill="#f2b8c6" opacity="0.8" r="3" />
+			<path
+				d="M24 40q8 5 16 0"
+				fill="none"
+				stroke="#1f6e3f"
+				strokeLinecap="round"
+				strokeWidth="2.4"
+			/>
 		</svg>
 	);
 }
@@ -138,8 +158,8 @@ function GhostArt({ className }: { className?: string }) {
 			/>
 			<ellipse cx="26" cy="28" fill={INK} rx="2.4" ry="3.4" />
 			<ellipse cx="38" cy="28" fill={INK} rx="2.4" ry="3.4" />
-			<circle cx="22" cy="34" fill="#f2b8c6" r="2" opacity="0.8" />
-			<circle cx="42" cy="34" fill="#f2b8c6" r="2" opacity="0.8" />
+			<circle cx="22" cy="34" fill="#f2b8c6" opacity="0.8" r="2" />
+			<circle cx="42" cy="34" fill="#f2b8c6" opacity="0.8" r="2" />
 		</svg>
 	);
 }
@@ -156,7 +176,12 @@ function RobotArt({ className }: { className?: string }) {
 			<rect fill="#e2e8f0" height="19" rx="4" width="24" x="20" y="22" />
 			<circle cx="27" cy="30" fill={INK} r="3" />
 			<circle cx="37" cy="30" fill={INK} r="3" />
-			<path d="M24 37h16" stroke={INK} strokeLinecap="round" strokeWidth="2.4" />
+			<path
+				d="M24 37h16"
+				stroke={INK}
+				strokeLinecap="round"
+				strokeWidth="2.4"
+			/>
 		</svg>
 	);
 }
@@ -215,7 +240,12 @@ function BeeArt({ className }: { className?: string }) {
 	return (
 		<svg aria-hidden="true" className={className} viewBox="0 0 64 64">
 			<title>Bee</title>
-			<path d="M28 23l-3-9M36 23l3-9" stroke={INK} strokeLinecap="round" strokeWidth="2" />
+			<path
+				d="M28 23l-3-9M36 23l3-9"
+				stroke={INK}
+				strokeLinecap="round"
+				strokeWidth="2"
+			/>
 			<circle cx="24" cy="12" fill={INK} r="1.6" />
 			<circle cx="40" cy="12" fill={INK} r="1.6" />
 			<ellipse fill="#e0f2fe" rx="6" ry="4" transform="rotate(-22 25 25)" />
@@ -233,11 +263,20 @@ function RocketArt({ className }: { className?: string }) {
 		<svg aria-hidden="true" className={className} viewBox="0 0 64 64">
 			<title>Rocket</title>
 			<path d="M26 17h12l-6-9z" fill={CORAL} />
-			<path d="M32 8c7 0 10 12 10 22a10 10 0 0 1-20 0c0-10 3-22 10-22z" fill="#f8fafc" />
+			<path
+				d="M32 8c7 0 10 12 10 22a10 10 0 0 1-20 0c0-10 3-22 10-22z"
+				fill="#f8fafc"
+			/>
 			<circle cx="32" cy="27" fill="#38bdf8" r="4" />
 			<path d="M24 31 18 40h8zM40 31l6 9h-8z" fill={CORAL} />
-			<path d="M32 42c-4 4-6 6-6 10a6 6 0 0 0 12 0c0-4-2-6-6-10z" fill={AMBER} />
-			<path d="M32 46c-2 3-3 4.5-3 7a3 3 0 0 0 6 0c0-2.5-1-4-3-7z" fill={CORAL} />
+			<path
+				d="M32 42c-4 4-6 6-6 10a6 6 0 0 0 12 0c0-4-2-6-6-10z"
+				fill={AMBER}
+			/>
+			<path
+				d="M32 46c-2 3-3 4.5-3 7a3 3 0 0 0 6 0c0-2.5-1-4-3-7z"
+				fill={CORAL}
+			/>
 		</svg>
 	);
 }
@@ -276,7 +315,10 @@ function WizardHatArt({ className }: { className?: string }) {
 		<svg aria-hidden="true" className={className} viewBox="0 0 64 64">
 			<title>Wizard hat</title>
 			<path d="M19 44 32 11l13 33z" fill="#7c3aed" />
-			<path d="M32 20l1.2 2.6 2.8.4-2 2 .5 2.8-2.5-1.4-2.5 1.4.5-2.8-2-2 2.8-.4z" fill={AMBER} />
+			<path
+				d="M32 20l1.2 2.6 2.8.4-2 2 .5 2.8-2.5-1.4-2.5 1.4.5-2.8-2-2 2.8-.4z"
+				fill={AMBER}
+			/>
 			<circle cx="27" cy="31" fill={AMBER} r="1.4" />
 			<circle cx="38" cy="25" fill={AMBER} r="1.4" />
 			<rect fill={CORAL} height="6" rx="2" width="22" x="21" y="38" />

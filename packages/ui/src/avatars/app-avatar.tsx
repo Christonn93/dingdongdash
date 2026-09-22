@@ -20,11 +20,11 @@ export interface AppAvatarProps {
 }
 
 const SIZE_CLASSES: Record<AppAvatarSize, string> = {
-	xs: "size-6 text-[10px]",
-	sm: "size-8 text-xs",
-	md: "size-10 text-sm",
 	lg: "size-14 text-base",
+	md: "size-10 text-sm",
+	sm: "size-8 text-xs",
 	xl: "size-16 text-lg",
+	xs: "size-6 text-[10px]",
 };
 
 const FALLBACK_PALETTE = [
@@ -35,19 +35,23 @@ const FALLBACK_PALETTE = [
 	"bg-sky-200/70 text-sky-700 dark:bg-sky-500/25 dark:text-sky-200",
 ] as const;
 
+const NAME_SEGMENTS = /\s+/;
+
 /** Deterministic (never random) fallback avatar color derived from a name. */
 export function avatarFallbackClass(name?: string | null): string {
 	const base = name?.trim() ?? "";
 	let hash = 0;
 	for (const char of base) {
-		hash = (hash * 31 + char.codePointAt(0)!) % 997;
+		hash = (hash * 31 + (char.codePointAt(0) ?? 0)) % 997;
 	}
-	return FALLBACK_PALETTE[hash % FALLBACK_PALETTE.length] ?? FALLBACK_PALETTE[0];
+	return (
+		FALLBACK_PALETTE[hash % FALLBACK_PALETTE.length] ?? FALLBACK_PALETTE[0]
+	);
 }
 
 export function avatarInitials(name?: string | null): string {
 	return (name ?? "?")
-		.split(/\s+/)
+		.split(NAME_SEGMENTS)
 		.filter(Boolean)
 		.slice(0, 2)
 		.map((part) => part[0]?.toUpperCase())
@@ -69,36 +73,42 @@ export function AppAvatar({
 	const spec = avatarId ? avatarSpecs[avatarId] : undefined;
 	const sizeClass = SIZE_CLASSES[size];
 
-	if (spec) {
+	if (avatarId && spec) {
+		const classes = cn(
+			"relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br",
+			spec.backdrop,
+			sizeClass,
+			className
+		);
+		if (label) {
+			return (
+				<span aria-label={label} className={classes} role="img">
+					<AvatarArt className="h-[62%] w-[62%]" id={avatarId} />
+				</span>
+			);
+		}
 		return (
-			<span
-				aria-hidden={label ? undefined : "true"}
-				aria-label={label}
-				className={cn(
-					"relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br",
-					spec.backdrop,
-					sizeClass,
-					className
-				)}
-				role={label ? "img" : undefined}
-			>
-				<AvatarArt id={avatarId} className="h-[62%] w-[62%]" />
+			<span aria-hidden="true" className={classes}>
+				<AvatarArt className="h-[62%] w-[62%]" id={avatarId} />
 			</span>
 		);
 	}
 
+	const classes = cn(
+		"relative inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold tracking-wide",
+		avatarFallbackClass(name),
+		sizeClass,
+		className
+	);
+	if (label) {
+		return (
+			<span aria-label={label} className={classes} role="img">
+				{avatarInitials(name)}
+			</span>
+		);
+	}
 	return (
-		<span
-			aria-hidden={label ? undefined : "true"}
-			aria-label={label}
-			className={cn(
-				"relative inline-flex shrink-0 items-center justify-center rounded-full font-semibold tracking-wide select-none",
-				avatarFallbackClass(name),
-				sizeClass,
-				className
-			)}
-			role={label ? "img" : undefined}
-		>
+		<span aria-hidden="true" className={classes}>
 			{avatarInitials(name)}
 		</span>
 	);

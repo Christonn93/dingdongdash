@@ -11,7 +11,7 @@ import { renderBrandedEmail, sendEmail } from "./email";
 import { sendExpoPush } from "./push";
 import { sendSms } from "./sms";
 
-export type NotifyEvent = "ring" | "caught" | "ditched";
+export type NotifyEvent = "ring" | "caught" | "ditched" | "friend_request";
 
 export interface NotifyPayload {
 	body: string;
@@ -49,6 +49,32 @@ export async function getNotificationPreference(db: Database, userId: string) {
 
 /** Dispatch a game event across the user's enabled channels. Returns a report
  * of what was attempted/sent so callers can log or debug. */
+function emailCopy(event: NotifyEvent): {
+	ctaHref: string;
+	ctaLabel: string;
+	eyebrow: string;
+} {
+	if (event === "friend_request") {
+		return {
+			ctaHref: "/friends",
+			ctaLabel: "View requests",
+			eyebrow: "New friend request",
+		};
+	}
+	if (event === "ring") {
+		return {
+			ctaHref: "/dashboard",
+			ctaLabel: "Open the door",
+			eyebrow: "Someone's at your door",
+		};
+	}
+	return {
+		ctaHref: "/dashboard",
+		ctaLabel: "View your points",
+		eyebrow: "Ring result",
+	};
+}
+
 export async function notifyUser(
 	ctx: Pick<
 		Context,
@@ -104,6 +130,7 @@ export async function notifyUser(
 			.where(eq(user.id, userId))
 			.limit(1);
 		if (row?.email) {
+			const copy = emailCopy(event);
 			const result = await sendEmail(
 				ctx.resendApiKey,
 				ctx.emailFrom,
@@ -111,9 +138,9 @@ export async function notifyUser(
 				payload.title,
 				renderBrandedEmail({
 					body: payload.body,
-					ctaHref: `${ctx.publicWebUrl}/dashboard`,
-					ctaLabel: event === "ring" ? "Open the door" : "View your points",
-					eyebrow: event === "ring" ? "Someone's at your door" : "Ring result",
+					ctaHref: `${ctx.publicWebUrl}${copy.ctaHref}`,
+					ctaLabel: copy.ctaLabel,
+					eyebrow: copy.eyebrow,
 					title: payload.title,
 				})
 			);

@@ -31,7 +31,7 @@ export function AuthPanel({ onBack }: AuthPanelProps) {
 		>
 			<Card className="w-[min(92vw,26rem)] border-none bg-background/95 shadow-2xl backdrop-blur-xl">
 				<CardHeader className="items-center gap-2 text-center">
-					<span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-indigo-500/30 shadow-lg">
+					<span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-500 to-violet-600 shadow-indigo-500/30 shadow-lg">
 						<svg
 							aria-hidden="true"
 							className="h-6 w-6 text-white"

@@ -1,9 +1,10 @@
 import { defineRelationsPart, sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { STARTING_POINTS } from "../game";
-import { avatarIds } from "../game";
+import { avatarIds, STARTING_POINTS } from "../game";
 
 export const user = sqliteTable("user", {
+	areaCity: text("area_city"),
+	areaCountry: text("area_country"),
 	avatarId: text("avatar_id", { enum: avatarIds }),
 	createdAt: integer("created_at", { mode: "timestamp_ms" })
 		.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
@@ -30,6 +31,7 @@ export const user = sqliteTable("user", {
 		.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
+	username: text("username").unique(),
 });
 
 export const session = sqliteTable(

@@ -123,7 +123,7 @@ interface PorchProps {
 }
 
 function interiorGlow(open: boolean, reduceMotion: boolean | null): Target {
-	const opacity = open ? 1 : 0.55;
+	const opacity = open ? 1 : 0;
 	if (reduceMotion) {
 		return { opacity };
 	}
@@ -217,13 +217,13 @@ function Porch({ label, onRing, open, ping }: PorchProps) {
 							<motion.button
 								animate={doorSwing(open, reduceMotion)}
 								aria-label="Open the door"
-								className="absolute inset-y-0 left-0 z-10 w-[calc(100%-14px)] cursor-pointer rounded-t-[6px] outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#3a2a1a]"
+								className="absolute inset-y-0 left-0 z-10 w-[calc(100%-12px)] cursor-pointer rounded-t-[6px] outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#3a2a1a]"
 								onClick={onRing}
 								style={{
 									background:
 										"linear-gradient(180deg, #8a5a34 0%, #6f4626 100%)",
 									boxShadow:
-										"inset -8px 0 14px rgba(0,0,0,0.3), inset 3px 0 6px rgba(255,220,170,0.18)",
+										"inset -7px 0 12px rgba(0,0,0,0.35), inset 3px 0 6px rgba(255,220,170,0.18), 0 6px 14px rgba(0,0,0,0.35)",
 									transformOrigin: "left center",
 									transformPerspective: 900,
 								}}
@@ -239,15 +239,20 @@ function Porch({ label, onRing, open, ping }: PorchProps) {
 											"repeating-linear-gradient(90deg, transparent 0px, transparent 26px, #4c3118 26px, #4c3118 28px)",
 									}}
 								/>
-								{/* Round window */}
+								{/* Top panel */}
 								<span
 									aria-hidden="true"
-									className="absolute top-8 left-1/2 h-10 w-10 -translate-x-1/2 rounded-full border-[#4c3118] border-[4px] bg-[#ffd9a0] shadow-[inset_0_0_10px_rgba(255,150,80,0.7)]"
+									className="absolute top-3 right-2.5 left-2.5 h-14 rounded-sm border-[#5b3c22] border-[3px]"
 								/>
-								{/* Door knob */}
+								{/* Bottom panel */}
 								<span
 									aria-hidden="true"
-									className="absolute top-1/2 right-2 h-3 w-3 -translate-y-1/2 rounded-full bg-amber-300 shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
+									className="absolute right-2.5 bottom-3 left-2.5 h-16 rounded-sm border-[#5b3c22] border-[3px]"
+								/>
+								{/* Door knob near the opening edge */}
+								<span
+									aria-hidden="true"
+									className="absolute top-1/2 right-2.5 h-3 w-3 -translate-y-1/2 rounded-full bg-amber-300 shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
 								/>
 							</motion.button>
 
@@ -313,7 +318,7 @@ function Doorbell({ ping, onRing }: { ping: number; onRing: () => void }) {
 		<motion.button
 			animate={ping > 0 ? { scale: [1, 0.82, 1.05, 1] } : undefined}
 			aria-label="Ring the doorbell"
-			className="absolute top-12 -right-2 z-20 cursor-pointer"
+			className="absolute top-[34%] -right-[3px] z-20 cursor-pointer"
 			key={ping}
 			onClick={onRing}
 			style={{ transformOrigin: "center" }}

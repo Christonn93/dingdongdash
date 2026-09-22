@@ -1,5 +1,4 @@
 import { Button } from "@dingdongdash/ui/components/button";
-import { Card } from "@dingdongdash/ui/components/card";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "motion/react";
@@ -11,10 +10,7 @@ import { celebrate, celebrateFromSides } from "@/lib/confetti";
 import { spring } from "@/lib/motion";
 import { trpc } from "@/utils/trpc";
 
-import {
-	DoorInteraction,
-	type DoorVisualState,
-} from "./door-interaction";
+import { DoorInteraction, type DoorVisualState } from "./door-interaction";
 
 const POLL_MS = 3000;
 
@@ -99,6 +95,7 @@ export function ActiveRings() {
 					>
 						<DoorInteraction
 							disabled={state === "expired"}
+							durationMs={incoming.durationMs}
 							isAnswering={isOpening}
 							onAnswer={() => handleAnswer(incoming.id)}
 							secondsRemaining={remainingMs}
@@ -145,7 +142,7 @@ function IdleDoor() {
 	};
 
 	return (
-		<Card className="overflow-hidden border-none">
+		<div className="overflow-hidden border-none">
 			<div className="relative overflow-hidden rounded-2xl">
 				{/* Dusk backdrop */}
 				<div
@@ -176,14 +173,14 @@ function IdleDoor() {
 					<motion.button
 						animate={pings > 0 ? { scale: [1, 0.82, 1.06, 1] } : undefined}
 						aria-label="Ring the practice doorbell"
-						className="relative flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full border-[#3a2a1a] border-[4px] bg-gradient-to-br from-amber-200 to-amber-400 shadow-[0_4px_14px_rgba(0,0,0,0.45),0_0_22px_rgba(255,200,120,0.85)]"
+						className="relative flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full border-4 border-[#3a2a1a] bg-linear-to-br from-amber-200 to-amber-400 shadow-[0_4px_14px_rgba(0,0,0,0.45),0_0_22px_rgba(255,200,120,0.85)]"
 						key={pings}
 						onClick={handlePress}
 						style={{ transformOrigin: "center" }}
 						transition={spring}
 						type="button"
 					>
-						<span className="h-6 w-6 rounded-full bg-gradient-to-br from-red-500 to-red-700 shadow-inner" />
+						<span className="h-6 w-6 rounded-full bg-linear-to-br from-red-500 to-red-700 shadow-inner" />
 						{pings > 0 && !reduceMotion && (
 							<>
 								<span
@@ -206,6 +203,6 @@ function IdleDoor() {
 					</Link>
 				</div>
 			</div>
-		</Card>
+		</div>
 	);
 }

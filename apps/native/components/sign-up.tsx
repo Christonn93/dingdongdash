@@ -13,8 +13,10 @@ import { useCallback, useRef } from "react";
 import { Pressable, Text, type TextInput, View } from "react-native";
 import z from "zod";
 
-import { authClient } from "@/lib/auth-client";
+import { signUpEmail } from "@/lib/auth-client";
 import { queryClient } from "@/utils/trpc";
+
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,24}$/;
 
 const signUpSchema = z.object({
 	email: z
@@ -31,6 +33,11 @@ const signUpSchema = z.object({
 		.string()
 		.min(1, "Password is required")
 		.min(8, "Use at least 8 characters"),
+	username: z
+		.string()
+		.trim()
+		.min(3, "Username must be at least 3 characters")
+		.regex(USERNAME_REGEX, "Only letters, numbers, and underscores (max 24)"),
 });
 
 function getErrorMessage(error: unknown): string | null {
@@ -81,6 +88,7 @@ interface SignUpProps {
 export function SignUp({ onSwitchToSignIn }: SignUpProps) {
 	const emailInputRef = useRef<TextInput>(null);
 	const passwordInputRef = useRef<TextInput>(null);
+	const usernameInputRef = useRef<TextInput>(null);
 	const { toast } = useToast();
 
 	const form = useForm({
@@ -88,13 +96,15 @@ export function SignUp({ onSwitchToSignIn }: SignUpProps) {
 			email: "",
 			name: "",
 			password: "",
+			username: "",
 		},
 		onSubmit: async ({ value, formApi }) => {
-			await authClient.signUp.email(
+			await signUpEmail(
 				{
 					email: value.email.trim(),
 					name: value.name.trim(),
 					password: value.password,
+					username: value.username.trim().toLowerCase(),
 				},
 				{
 					onError(error) {
@@ -121,6 +131,10 @@ export function SignUp({ onSwitchToSignIn }: SignUpProps) {
 
 	const focusEmailField = useCallback(() => {
 		emailInputRef.current?.focus();
+	}, []);
+
+	const focusUsernameField = useCallback(() => {
+		usernameInputRef.current?.focus();
 	}, []);
 
 	const focusPasswordField = useCallback(() => {
@@ -181,11 +195,37 @@ export function SignUp({ onSwitchToSignIn }: SignUpProps) {
 												keyboardType="email-address"
 												onBlur={field.handleBlur}
 												onChangeText={field.handleChange}
-												onSubmitEditing={focusPasswordField}
+												onSubmitEditing={focusUsernameField}
 												placeholder="email@example.com"
 												ref={emailInputRef}
 												returnKeyType="next"
 												textContentType="emailAddress"
+												value={field.state.value}
+											/>
+											<FieldError
+												isInvalid={field.state.meta.errors.length > 0}
+											>
+												{getErrorMessage(field.state.meta.errors[0])}
+											</FieldError>
+										</TextField>
+									)}
+								</form.Field>
+
+								<form.Field name="username">
+									{(field) => (
+										<TextField>
+											<Label>Username</Label>
+											<Input
+												autoCapitalize="none"
+												autoComplete="username"
+												blurOnSubmit={false}
+												onBlur={field.handleBlur}
+												onChangeText={field.handleChange}
+												onSubmitEditing={focusPasswordField}
+												placeholder="doorbell_legend"
+												ref={usernameInputRef}
+												returnKeyType="next"
+												textContentType="username"
 												value={field.state.value}
 											/>
 											<FieldError

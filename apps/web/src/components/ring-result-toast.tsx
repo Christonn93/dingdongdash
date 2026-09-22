@@ -3,7 +3,9 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
+import { playSparkle } from "@/lib/audio";
 import { authClient } from "@/lib/auth-client";
+import { celebrate, celebrateFromSides } from "@/lib/confetti";
 import { spring } from "@/lib/motion";
 import { trpc } from "@/utils/trpc";
 
@@ -13,7 +15,8 @@ const POLL_MS = 4000;
 
 /**
  * Watches rings the current user *sent* and, when one resolves, shows a fun
- * animated toast — the "you got caught" (or "they ditched you") moment.
+ * animated toast — the "you got caught" (loss) or "you caught them" (win)
+ * moment.
  */
 export function RingResultToast() {
 	const { data: session } = authClient.useSession();
@@ -54,9 +57,12 @@ export function RingResultToast() {
 				duration: 5000,
 			});
 		} else {
-			toast.custom((id) => <DitchedToast onClose={() => toast.dismiss(id)} />, {
-				duration: 5000,
-			});
+			toast.custom(
+				(id) => <CaughtThemToast onClose={() => toast.dismiss(id)} />,
+				{
+					duration: 5000,
+				}
+			);
 		}
 	}, [history.data, meId]);
 
@@ -91,43 +97,75 @@ function CaughtToast({ onClose }: { onClose: () => void }) {
 	);
 }
 
-function DitchedToast({ onClose }: { onClose: () => void }) {
+/** The ringer's win: the target never opened the door. Big, cheerful, loud. */
+function CaughtThemToast({ onClose }: { onClose: () => void }) {
 	const reduceMotion = useReducedMotion();
+
+	useEffect(() => {
+		celebrate({ originY: 0.45, particleCount: 160 });
+		celebrateFromSides();
+		playSparkle();
+	}, []);
+
 	return (
 		<ResultToastCard onClose={onClose} reduceMotion={reduceMotion}>
-			<motion.div
-				animate={reduceMotion ? { opacity: 1 } : { y: [0, -4, 0] }}
-				className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-muted font-black font-display text-2xl text-muted-foreground"
-				transition={{
-					duration: 0.9,
-					ease: "easeInOut",
-					repeat: Number.POSITIVE_INFINITY,
-				}}
-			>
-				<svg
-					className="h-6 w-6"
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="2"
-					viewBox="0 0 24 24"
+			<div className="flex items-center gap-3">
+				<motion.div
+					animate={reduceMotion ? { rotate: 0 } : { rotate: [-6, 6, -6, 0] }}
+					transition={{
+						duration: 0.8,
+						ease: "easeInOut",
+						repeat: Number.POSITIVE_INFINITY,
+					}}
 				>
-					<title>Ditched</title>
-					<path
-						d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					/>
-				</svg>
-			</motion.div>
-			<div>
-				<p className="font-display font-extrabold text-base">
-					They ditched you
-				</p>
-				<p className="text-muted-foreground text-sm">
-					The timer ran out. −10 points.
-				</p>
+					<DoorbellChamp />
+				</motion.div>
+				<div>
+					<p className="font-display font-extrabold text-base text-primary">
+						You caught them!
+					</p>
+					<p className="text-muted-foreground text-sm">
+						They never made it to the door. +10 points.
+					</p>
+				</div>
 			</div>
 		</ResultToastCard>
+	);
+}
+
+/** A triumphant doorbell with a party hat and confetti. */
+function DoorbellChamp() {
+	return (
+		<svg
+			aria-hidden="true"
+			className="h-20 w-16 drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]"
+			viewBox="0 0 64 80"
+		>
+			<title>Caught them</title>
+			<circle cx="10" cy="16" fill="#ffd166" r="2" />
+			<circle cx="54" cy="12" fill="#43c18a" r="2.2" />
+			<circle cx="12" cy="34" fill="#7c6cff" r="1.6" />
+			<circle cx="52" cy="32" fill="#f0563d" r="1.6" />
+			<path d="M32 2l5 11h-10z" fill="#7c6cff" />
+			<circle cx="32" cy="2" fill="#ffd166" r="2" />
+			<path
+				d="M32 6c9 0 16 7.5 16 16.8V34a4 4 0 0 0 4 4h-2a4 4 0 0 1-4 4H14a4 4 0 0 1-4-4h-2a4 4 0 0 0 4-4V22.8C12 13.5 23 6 32 6z"
+				fill="#f0563d"
+			/>
+			<ellipse cx="24" cy="15" fill="#f4785f" opacity="0.7" rx="9" ry="7" />
+			<circle cx="26" cy="27" fill="#2c2136" r="2.4" />
+			<circle cx="38" cy="27" fill="#2c2136" r="2.4" />
+			<path
+				d="M26 34q6 5 12 0"
+				fill="none"
+				stroke="#2c2136"
+				strokeLinecap="round"
+				strokeWidth="2.4"
+			/>
+			<rect fill="#991b1b" height="6" rx="2" width="26" x="19" y="58" />
+			<rect fill="#7f1d1d" height="9" rx="2.5" width="6" x="21" y="62" />
+			<rect fill="#7f1d1d" height="9" rx="2.5" width="6" x="37" y="62" />
+		</svg>
 	);
 }
 

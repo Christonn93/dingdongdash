@@ -6,11 +6,27 @@ import {
 } from "@dingdongdash/db/game";
 import { friendship, invite, user } from "@dingdongdash/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, count, eq, gt, inArray, ne, or, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	count,
+	desc,
+	eq,
+	gt,
+	gte,
+	inArray,
+	lte,
+	ne,
+	or,
+	type SQL,
+	sql,
+} from "drizzle-orm";
 import z from "zod";
 
 import { protectedProcedure, router } from "../index";
 import { generateInviteCode } from "../lib/invites";
+import { notifyUser } from "../lib/notifications";
+import { relationshipForUsers } from "../lib/relationships";
 
 const friendColumns = {
 	avatarId: user.avatarId,
@@ -20,6 +36,15 @@ const friendColumns = {
 	name: user.name,
 	points: user.points,
 } as const;
+
+const discoverColumns = {
+	avatarId: user.avatarId,
+	id: user.id,
+	name: user.name,
+	points: user.points,
+} as const;
+
+const DISCOVER_LIMIT = 5;
 
 export const friendsRouter = router({
 	acceptInvite: protectedProcedure
@@ -52,7 +77,7 @@ export const friendsRouter = router({
 				});
 			}
 
-			await ensurePair(db, row.userId, me, "pending");
+			await ensurePair(db, row.userId, me, "pending", row.userId);
 			const existing = await getPair(db, row.userId, me);
 			if (existing.some((r) => r.status === "blocked")) {
 				throw new TRPCError({
@@ -88,7 +113,8 @@ export const friendsRouter = router({
 					and(
 						eq(friendship.id, input.friendshipId),
 						eq(friendship.friendId, me),
-						eq(friendship.status, "pending")
+						eq(friendship.status, "pending"),
+						ne(friendship.requestedBy, me)
 					)
 				)
 				.limit(1);
@@ -126,7 +152,7 @@ export const friendsRouter = router({
 				throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 			}
 
-			await ensurePair(db, me, input.targetUserId, "blocked");
+			await ensurePair(db, me, input.targetUserId, "blocked", me);
 			await setPairStatus(db, me, input.targetUserId, "blocked");
 			return { blocked: true };
 		}),
@@ -162,6 +188,62 @@ export const friendsRouter = router({
 			code,
 			url: `${ctx.publicWebUrl}/invite/${code}`,
 		};
+	}),
+
+	discover: protectedProcedure.query(async ({ ctx }) => {
+		const { areaCity, areaCountry, db, session } = ctx;
+		const me = session.user.id;
+		const myPoints = (await discoverMyPoints(db, me)) ?? 0;
+
+		let areaCondition: SQL;
+		if (areaCity) {
+			areaCondition = eq(user.areaCity, areaCity);
+		} else if (areaCountry) {
+			areaCondition = eq(user.areaCountry, areaCountry);
+		} else {
+			areaCondition = sql`0`;
+		}
+
+		const areaRows = await db
+			.select(discoverColumns)
+			.from(user)
+			.where(and(areaCondition, ne(user.id, me)))
+			.orderBy(desc(user.points), asc(user.id))
+			.limit(DISCOVER_LIMIT);
+
+		const similarRows = await db
+			.select(discoverColumns)
+			.from(user)
+			.where(
+				and(
+					ne(user.id, me),
+					gte(user.points, Math.floor(myPoints * 0.75)),
+					lte(user.points, Math.ceil(myPoints * 1.25))
+				)
+			)
+			.orderBy(
+				asc(sql`abs(${user.points} - ${myPoints})`),
+				desc(user.points),
+				asc(user.id)
+			)
+			.limit(DISCOVER_LIMIT);
+
+		const relationships = await relationshipForUsers(
+			db,
+			me,
+			[...areaRows, ...similarRows].map((row) => row.id)
+		);
+		const decorate = (rows: typeof areaRows) =>
+			rows.map((row) => {
+				const rel = relationships.get(row.id);
+				return {
+					...row,
+					incomingFriendshipId: rel?.incomingFriendshipId ?? null,
+					relationship: rel?.relationship ?? "none",
+				};
+			});
+
+		return { area: decorate(areaRows), similar: decorate(similarRows) };
 	}),
 
 	getInviter: protectedProcedure
@@ -206,7 +288,7 @@ export const friendsRouter = router({
 
 			const results = await Promise.all(
 				matches.map(async (match) => {
-					await ensurePair(db, me, match.id, "pending");
+					await ensurePair(db, me, match.id, "pending", me);
 					const pair = await getPair(db, me, match.id);
 					if (
 						pair.length === 2 &&
@@ -246,7 +328,11 @@ export const friendsRouter = router({
 			.from(friendship)
 			.innerJoin(user, eq(friendship.userId, user.id))
 			.where(
-				and(eq(friendship.friendId, me), eq(friendship.status, "pending"))
+				and(
+					eq(friendship.friendId, me),
+					eq(friendship.status, "pending"),
+					ne(friendship.requestedBy, me)
+				)
 			);
 
 		const outgoing = await db
@@ -257,7 +343,13 @@ export const friendsRouter = router({
 			})
 			.from(friendship)
 			.innerJoin(user, eq(friendship.friendId, user.id))
-			.where(and(eq(friendship.userId, me), eq(friendship.status, "pending")));
+			.where(
+				and(
+					eq(friendship.userId, me),
+					eq(friendship.status, "pending"),
+					eq(friendship.requestedBy, me)
+				)
+			);
 
 		return { accepted, incoming, outgoing };
 	}),
@@ -295,9 +387,25 @@ export const friendsRouter = router({
 			if (acceptedRow) {
 				return { friendshipId: acceptedRow.id };
 			}
+			const hadPending = existing.some((row) => row.status === "pending");
 
-			await ensurePair(db, me, input.targetUserId, "pending");
+			await ensurePair(db, me, input.targetUserId, "pending", me);
 			const rows = await getPair(db, me, input.targetUserId);
+
+			// Only notify the target when this call created a genuinely new
+			// request — never re-alert for an already-pending pair.
+			if (!hadPending) {
+				await notifyUser(ctx, input.targetUserId, "friend_request", {
+					body: `${session.user.name} sent you a friend request.`,
+					data: {
+						fromName: session.user.name,
+						fromUserId: session.user.id,
+						type: "friend_request",
+					},
+					title: "New friend request",
+				});
+			}
+
 			return { friendshipId: rows[0]?.id };
 		}),
 
@@ -322,13 +430,26 @@ async function ensurePair(
 	db: Database,
 	userIdA: string,
 	userIdB: string,
-	status: "pending" | "blocked"
+	status: "pending" | "blocked",
+	requestedBy?: string
 ) {
 	await db
 		.insert(friendship)
 		.values([
-			{ friendId: userIdB, id: crypto.randomUUID(), status, userId: userIdA },
-			{ friendId: userIdA, id: crypto.randomUUID(), status, userId: userIdB },
+			{
+				friendId: userIdB,
+				id: crypto.randomUUID(),
+				requestedBy,
+				status,
+				userId: userIdA,
+			},
+			{
+				friendId: userIdA,
+				id: crypto.randomUUID(),
+				requestedBy,
+				status,
+				userId: userIdB,
+			},
 		])
 		.onConflictDoNothing();
 }
@@ -360,4 +481,16 @@ async function setPairStatus(
 				and(eq(friendship.userId, userIdB), eq(friendship.friendId, userIdA))
 			)
 		);
+}
+
+async function discoverMyPoints(
+	db: Database,
+	me: string
+): Promise<number | undefined> {
+	const [row] = await db
+		.select({ points: user.points })
+		.from(user)
+		.where(eq(user.id, me))
+		.limit(1);
+	return row?.points;
 }

@@ -60,6 +60,9 @@ export const friendship = sqliteTable(
 			.references(() => user.id, { onDelete: "cascade" }),
 		id: text("id").primaryKey(),
 		muted: integer("muted", { mode: "boolean" }).default(false).notNull(),
+		requestedBy: text("requested_by").references(() => user.id, {
+			onDelete: "set null",
+		}),
 		status: text("status", { enum: friendshipStatus })
 			.default("pending")
 			.notNull(),

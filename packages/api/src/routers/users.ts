@@ -13,6 +13,8 @@ import { protectedProcedure, router } from "../index";
 
 const phoneHashRegex = /^[0-9a-f]{64}$/;
 
+const usernameInputRegex = /^[a-zA-Z0-9_]{3,24}$/;
+
 export const usersRouter = router({
 	armTimeShield: protectedProcedure.mutation(async ({ ctx }) => {
 		const { db, session } = ctx;
@@ -254,6 +256,14 @@ export const usersRouter = router({
 					.string()
 					.regex(phoneHashRegex, "phoneHash must be a SHA-256 hex digest")
 					.optional(),
+				username: z
+					.string()
+					.trim()
+					.regex(
+						usernameInputRegex,
+						"Username must be 3-24 letters, numbers, or underscores"
+					)
+					.optional(),
 			})
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -261,12 +271,30 @@ export const usersRouter = router({
 			if (
 				input.avatarId === undefined &&
 				input.name === undefined &&
-				input.phoneHash === undefined
+				input.phoneHash === undefined &&
+				input.username === undefined
 			) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Nothing to update",
 				});
+			}
+
+			const username =
+				input.username === undefined ? undefined : input.username.toLowerCase();
+
+			if (username !== undefined) {
+				const [existing] = await db
+					.select({ id: user.id })
+					.from(user)
+					.where(eq(user.username, username))
+					.limit(1);
+				if (existing && existing.id !== session.user.id) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "That username is already taken",
+					});
+				}
 			}
 
 			try {
@@ -280,6 +308,7 @@ export const usersRouter = router({
 						...(input.phoneHash === undefined
 							? {}
 							: { phoneHash: input.phoneHash }),
+						...(username === undefined ? {} : { username }),
 					})
 					.where(eq(user.id, session.user.id));
 			} catch (error) {

@@ -1,6 +1,6 @@
 import { AppAvatar } from "@dingdongdash/ui/avatars/app-avatar";
+import type { avatarSpecs } from "@dingdongdash/ui/avatars/avatar-config";
 import { Button } from "@dingdongdash/ui/components/button";
-import type { AvatarId } from "@dingdongdash/db/game";
 import { motion, useReducedMotion } from "motion/react";
 
 import { doorSpring } from "@/lib/motion";
@@ -16,13 +16,16 @@ export type DoorVisualState =
 
 export interface DoorInteractionProps {
 	disabled?: boolean;
+	durationMs?: number;
 	isAnswering?: boolean;
 	onAnswer?: () => void | Promise<void>;
 	secondsRemaining?: number;
 	state: DoorVisualState;
-	visitorAvatarId?: AvatarId | null;
+	visitorAvatarId?: keyof typeof avatarSpecs | null;
 	visitorName?: string;
 }
+
+const DEFAULT_DURATION_MS = 30_000;
 
 /**
  * The incoming-ring front-door moment. The door is fully closed until the
@@ -32,6 +35,7 @@ export interface DoorInteractionProps {
  */
 export function DoorInteraction({
 	disabled,
+	durationMs = DEFAULT_DURATION_MS,
 	isAnswering,
 	onAnswer,
 	secondsRemaining = 0,
@@ -42,15 +46,15 @@ export function DoorInteraction({
 	const reduceMotion = useReducedMotion();
 	const open = state === "opening" || state === "answered";
 	const canAnswer = state === "incoming" && !isAnswering && !disabled;
-	const urgent = state === "incoming" && secondsRemaining <= 10;
+	const urgent = state === "incoming" && secondsRemaining <= 10_000;
 	const lost = state === "expired";
-	const seconds = Math.max(0, secondsRemaining);
+	const seconds = Math.max(0, Math.ceil(secondsRemaining / 1000));
 
 	const handleAnswer = () => {
 		if (!canAnswer) {
 			return;
 		}
-		void onAnswer?.();
+		onAnswer?.();
 	};
 
 	return (
@@ -83,7 +87,12 @@ export function DoorInteraction({
 					</div>
 				</div>
 				{state === "incoming" || state === "opening" ? (
-					<CountdownBadge progress={secondsRemaining} seconds={seconds} urgent={urgent} />
+					<CountdownBadge
+						durationMs={durationMs}
+						progress={secondsRemaining}
+						seconds={seconds}
+						urgent={urgent}
+					/>
 				) : null}
 			</div>
 
@@ -91,8 +100,9 @@ export function DoorInteraction({
 			<div className="relative z-10 flex justify-center px-4 pt-6 pb-5">
 				<DoorScene
 					canAnswer={canAnswer}
-					open={open}
+					lost={lost}
 					onAnswer={handleAnswer}
+					open={open}
 					reduceMotion={reduceMotion}
 					urgent={urgent}
 					visitorName={visitorName}
@@ -116,7 +126,9 @@ export function DoorInteraction({
 				) : null}
 			</div>
 
-			{state === "answered" ? <CaughtCelebration name={visitorName} /> : null}
+			{state === "answered" ? (
+				<CaughtCelebration name={visitorName ?? ""} />
+			) : null}
 		</div>
 	);
 }
@@ -139,15 +151,17 @@ function statusLine(
 }
 
 function CountdownBadge({
+	durationMs,
 	progress,
 	seconds,
 	urgent,
 }: {
+	durationMs: number;
 	progress: number;
 	seconds: number;
 	urgent: boolean;
 }) {
-	const clamped = Math.max(0, Math.min(1, progress / 30_000));
+	const clamped = Math.max(0, Math.min(1, progress / durationMs));
 	const radius = 20;
 	const circumference = 2 * Math.PI * radius;
 	return (
@@ -187,6 +201,7 @@ function CountdownBadge({
 
 function DoorScene({
 	canAnswer,
+	lost,
 	onAnswer,
 	open,
 	reduceMotion,
@@ -194,6 +209,7 @@ function DoorScene({
 	visitorName,
 }: {
 	canAnswer: boolean;
+	lost: boolean;
 	onAnswer: () => void;
 	open: boolean;
 	reduceMotion: boolean | null;
@@ -253,14 +269,10 @@ function DoorScene({
 						: { rotateY: open ? -68 : 0, x: open ? -5 : 0 }
 				}
 				aria-label={
-					visitorName
-						? `Answer the door for ${visitorName}`
-						: "Answer the door"
+					visitorName ? `Answer the door for ${visitorName}` : "Answer the door"
 				}
 				className={`absolute inset-y-[20px] left-[20px] z-10 w-[calc(100%-40px)] cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c2136] ${
-					canAnswer ? "" : "cursor-default"
-				} ${open ? "" : ""} ${
-					!canAnswer ? "opacity-75 saturate-50" : ""
+					lost ? "cursor-default opacity-75 saturate-50" : ""
 				} ${urgent && !open && !reduceMotion ? "ddd-urgency" : ""}`}
 				disabled={!canAnswer}
 				onClick={onAnswer}
@@ -286,12 +298,12 @@ function DoorScene({
 				{/* Top panel */}
 				<span
 					aria-hidden="true"
-					className="absolute top-2.5 right-1.5 left-1.5 h-8 rounded-sm border-[3px] border-[#5b3c22]"
+					className="absolute top-2.5 right-1.5 left-1.5 h-8 rounded-sm border-[#5b3c22] border-[3px]"
 				/>
 				{/* Bottom panel */}
 				<span
 					aria-hidden="true"
-					className="absolute right-1.5 bottom-2.5 left-1.5 h-9 rounded-sm border-[3px] border-[#5b3c22]"
+					className="absolute right-1.5 bottom-2.5 left-1.5 h-9 rounded-sm border-[#5b3c22] border-[3px]"
 				/>
 				{/* Door knob near the opening edge */}
 				<span
@@ -310,7 +322,7 @@ function DoorScene({
 				onClick={onAnswer}
 				type="button"
 			>
-				<span className="relative flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-[#2c2136] bg-gradient-to-br from-amber-200 to-amber-400 shadow-[0_2px_5px_rgba(0,0,0,0.4),0_0_12px_rgba(255,200,120,0.8)]">
+				<span className="relative flex h-7 w-7 items-center justify-center rounded-full border-[#2c2136] border-[3px] bg-gradient-to-br from-amber-200 to-amber-400 shadow-[0_2px_5px_rgba(0,0,0,0.4),0_0_12px_rgba(255,200,120,0.8)]">
 					<span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-red-500 to-red-700" />
 				</span>
 				{canAnswer && !reduceMotion ? (

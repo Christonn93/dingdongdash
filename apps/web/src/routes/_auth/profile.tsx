@@ -1,4 +1,6 @@
 import { APP_META } from "@dingdongdash/api/lib/app-meta";
+import { AppAvatar } from "@dingdongdash/ui/avatars/app-avatar";
+import { avatarSpecs } from "@dingdongdash/ui/avatars/avatar-config";
 import { Button } from "@dingdongdash/ui/components/button";
 import {
 	Card,
@@ -20,6 +22,20 @@ import { hashPhoneNumber, normalizePhoneNumber } from "@/utils/contacts";
 import { trpc } from "@/utils/trpc";
 
 const SMS_PHONE_REGEX = /^\+[1-9][0-9]{6,14}$/;
+
+const USERNAME_REGEX = /^[a-z0-9_]{3,24}$/;
+
+type AvatarId = keyof typeof avatarSpecs;
+
+const AVATAR_OPTIONS = Object.keys(avatarSpecs) as AvatarId[];
+
+function formatArea(city?: string | null, country?: string | null): string {
+	if (!(city || country)) {
+		return "";
+	}
+	const label = city && country ? `${city}, ${country}` : (city ?? country);
+	return ` · Area: ${label} (approximate)`;
+}
 
 export const Route = createFileRoute("/_auth/profile")({
 	component: ProfileRoute,
@@ -94,6 +110,48 @@ function ProfileRoute() {
 		})
 	);
 
+	const avatarMutation = useMutation(
+		trpc.users.updateProfile.mutationOptions({
+			onSuccess: () => {
+				toast.success("Avatar updated");
+				me.refetch();
+			},
+			onError: (error) => toast.error(error.message),
+		})
+	);
+
+	const [username, setUsername] = useState("");
+	const usernameMutation = useMutation(
+		trpc.users.updateProfile.mutationOptions({
+			onSuccess: () => {
+				toast.success("Username saved");
+				setUsername("");
+				me.refetch();
+			},
+			onError: (error) => toast.error(error.message),
+		})
+	);
+
+	const handleUsernameSubmit = useCallback(
+		(event: FormEvent<HTMLFormElement>) => {
+			event.preventDefault();
+			const normalized = username.trim().toLowerCase();
+			if (!USERNAME_REGEX.test(normalized)) {
+				toast.error("Use 3-24 lowercase letters, numbers, or underscores");
+				return;
+			}
+			usernameMutation.mutate({ username: normalized });
+		},
+		[username, usernameMutation]
+	);
+
+	const handleUsernameChange = useCallback(
+		(event: React.ChangeEvent<HTMLInputElement>) => {
+			setUsername(event.target.value);
+		},
+		[]
+	);
+
 	const user = me.data?.user ?? session.data?.user;
 	const points = me.data?.user?.points;
 	const hasLinkedPhone = Boolean(me.data?.user?.phoneHash);
@@ -124,6 +182,17 @@ function ProfileRoute() {
 		linkPhone.mutate({ phoneHash: undefined });
 	}, [linkPhone]);
 
+	const handleSelectAvatar = useCallback(
+		(avatarId: AvatarId) => {
+			avatarMutation.mutate({ avatarId });
+		},
+		[avatarMutation]
+	);
+
+	const handleClearAvatar = useCallback(() => {
+		avatarMutation.mutate({ avatarId: null });
+	}, [avatarMutation]);
+
 	return (
 		<div className="mx-auto w-full max-w-2xl space-y-6 py-8">
 			<Reveal>
@@ -147,11 +216,112 @@ function ProfileRoute() {
 					</div>
 					<p className="mt-3 text-muted-foreground text-sm">
 						{me.data?.friendCount ?? 0} friends
+						{formatArea(me.data?.user.areaCity, me.data?.user.areaCountry)}
 					</p>
 				</div>
 			</Reveal>
 
 			<Reveal index={1}>
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Your avatar</CardTitle>
+						<CardDescription>
+							Pick a little face for your doorstep. It shows up on the door when
+							you ring a friend.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="flex items-center gap-3">
+							<AppAvatar
+								avatarId={me.data?.user.avatarId}
+								name={user?.name}
+								size="lg"
+							/>
+							<div>
+								<p className="font-medium text-sm">{user?.name}</p>
+								<p className="text-muted-foreground text-xs">
+									{me.data?.user.avatarId
+										? "This is how friends see you"
+										: "Using your initials for now"}
+								</p>
+							</div>
+						</div>
+						<div
+							aria-label="Choose an avatar"
+							className="grid grid-cols-4 gap-2 sm:grid-cols-8"
+							role="radiogroup"
+						>
+							{AVATAR_OPTIONS.map((avatarId) => {
+								const selected = me.data?.user.avatarId === avatarId;
+								return (
+									<label
+										className={`relative flex cursor-pointer items-center justify-center rounded-full p-1 outline-none transition-transform focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${
+											selected
+												? "ring-2 ring-primary ring-offset-2"
+												: "hover:scale-105"
+										} ${avatarMutation.isPending ? "cursor-wait opacity-70" : ""}`}
+										key={avatarId}
+									>
+										<input
+											checked={selected}
+											className="sr-only"
+											disabled={avatarMutation.isPending}
+											name="avatar"
+											onChange={() => handleSelectAvatar(avatarId)}
+											type="radio"
+											value={avatarId}
+										/>
+										<AppAvatar avatarId={avatarId} size="md" />
+										<span className="sr-only">
+											Choose {avatarSpecs[avatarId].label} avatar
+										</span>
+									</label>
+								);
+							})}
+						</div>
+						<div className="flex items-center justify-between gap-2">
+							{me.data?.user.avatarId ? (
+								<Button
+									disabled={avatarMutation.isPending}
+									onClick={handleClearAvatar}
+									size="sm"
+									variant="ghost"
+								>
+									Remove avatar
+								</Button>
+							) : null}
+							{avatarMutation.isPending ? (
+								<span className="text-muted-foreground text-xs">Saving…</span>
+							) : null}
+						</div>
+						<div className="border-t pt-4">
+							<Label htmlFor="username">Username</Label>
+							<form className="mt-2 flex gap-2" onSubmit={handleUsernameSubmit}>
+								<Input
+									autoCapitalize="none"
+									autoComplete="username"
+									id="username"
+									onChange={handleUsernameChange}
+									placeholder={
+										me.data?.user.username
+											? `@${me.data?.user.username}`
+											: "Set a unique @username"
+									}
+									value={username}
+								/>
+								<Button
+									disabled={usernameMutation.isPending || !username.trim()}
+									type="submit"
+								>
+									{usernameMutation.isPending ? "Saving…" : "Save"}
+								</Button>
+							</form>
+						</div>
+					</CardContent>
+				</Card>
+			</Reveal>
+
+			<Reveal index={2}>
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-base">Contact matching</CardTitle>
@@ -198,7 +368,7 @@ function ProfileRoute() {
 				</Card>
 			</Reveal>
 
-			<Reveal index={2}>
+			<Reveal index={3}>
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-base">Notifications</CardTitle>
@@ -245,7 +415,7 @@ function ProfileRoute() {
 				</Card>
 			</Reveal>
 
-			<Reveal index={3}>
+			<Reveal index={4}>
 				<div className="rounded-2xl border p-6">
 					<h2 className="mb-4 font-medium">Point history</h2>
 					{ledger.isLoading ? (
@@ -282,7 +452,7 @@ function ProfileRoute() {
 				</div>
 			</Reveal>
 
-			<Reveal index={4}>
+			<Reveal index={5}>
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-base">About</CardTitle>

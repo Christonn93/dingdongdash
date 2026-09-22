@@ -57,14 +57,14 @@ function LandingPage() {
 
 	return (
 		<div className="min-h-full overflow-x-hidden">
-			<section className="relative flex min-h-[100svh] flex-col overflow-hidden">
+			<section className="relative flex min-h-svh flex-col overflow-hidden">
 				<FrontDoor hint={hint} label="17" onOpen={handleOpen} open={open} />
 
 				{/* Top bar */}
 				<div className="absolute inset-x-0 top-0 z-30">
 					<div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
 						<div className="flex items-center gap-2 text-amber-50">
-							<span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-indigo-950/40 shadow-lg">
+							<span className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-violet-600 shadow-indigo-950/40 shadow-lg">
 								<svg
 									aria-hidden="true"
 									className="h-5 w-5 text-white"
@@ -110,7 +110,7 @@ function LandingPage() {
 							</span>
 							<h1 className="mx-auto mt-4 max-w-2xl font-display font-extrabold text-4xl text-amber-50 drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)] sm:text-6xl">
 								Ring the doorbell.{" "}
-								<span className="bg-gradient-to-r from-amber-200 to-orange-300 bg-clip-text text-transparent">
+								<span className="bg-linear-to-r from-amber-200 to-orange-300 bg-clip-text text-transparent">
 									Beat the clock.
 								</span>
 							</h1>

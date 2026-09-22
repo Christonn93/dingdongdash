@@ -1,33 +1,85 @@
+import { AppAvatar } from "@dingdongdash/ui/avatars/app-avatar";
+import type { avatarSpecs } from "@dingdongdash/ui/avatars/avatar-config";
 import { Button } from "@dingdongdash/ui/components/button";
 import { Card, CardContent } from "@dingdongdash/ui/components/card";
 import { Skeleton } from "@dingdongdash/ui/components/skeleton";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
+import { z } from "zod";
 
+import {
+	FriendActionButton,
+	type FriendRelationship,
+} from "@/components/friend-action";
 import { Reveal } from "@/components/reveal";
 import { trpc } from "@/utils/trpc";
 
+const scopeSchema = z
+	.enum(["friends", "all", "area", "score"])
+	.optional()
+	.default("all");
+
 export const Route = createFileRoute("/_auth/leaderboard")({
 	component: LeaderboardRoute,
+	validateSearch: z.object({ scope: scopeSchema }),
 });
 
-type Scope = "friends" | "global";
+type Scope = "friends" | "all" | "area" | "score";
+
+const TABS: Array<{ key: Scope; label: string }> = [
+	{ key: "friends", label: "Friends" },
+	{ key: "all", label: "All" },
+	{ key: "area", label: "In your area" },
+	{ key: "score", label: "Similar score" },
+];
 
 function LeaderboardRoute() {
-	const [scope, setScope] = useState<Scope>("friends");
+	const search = Route.useSearch();
+	const [scope, setScope] = useState<Scope>(search.scope);
 	const [offset, setOffset] = useState(0);
+
+	const isGlobal = scope !== "friends";
+	const globalScope = scope === "friends" ? "all" : scope;
 
 	const friends = useQuery(trpc.leaderboard.getFriends.queryOptions());
 	const global = useQuery(
-		trpc.leaderboard.getGlobal.queryOptions({ cursor: 0, limit: 25 })
+		trpc.leaderboard.getGlobal.queryOptions(
+			{ cursor: 0, limit: 25, scope: globalScope },
+			{ enabled: isGlobal }
+		)
 	);
 	const more = useQuery(
 		trpc.leaderboard.getGlobal.queryOptions(
-			{ cursor: offset + 25, limit: 25 },
-			{ enabled: offset > 0 }
+			{ cursor: offset + 25, limit: 25, scope: globalScope },
+			{ enabled: isGlobal && offset > 0 }
 		)
 	);
+
+	const sendRequest = useMutation(
+		trpc.friends.sendRequest.mutationOptions({
+			onSuccess: async () => {
+				toast.success("Friend request sent");
+				await refetchDiscovery();
+			},
+			onError: (error) => toast.error(error.message),
+		})
+	);
+
+	const acceptRequest = useMutation(
+		trpc.friends.acceptRequest.mutationOptions({
+			onSuccess: async () => {
+				toast.success("Friend added!");
+				await refetchDiscovery();
+			},
+			onError: (error) => toast.error(error.message),
+		})
+	);
+
+	function refetchDiscovery() {
+		return Promise.all([friends.refetch(), global.refetch(), more.refetch()]);
+	}
 
 	const me = friends.data?.me;
 	const rows =
@@ -36,36 +88,13 @@ function LeaderboardRoute() {
 			: [...(global.data?.entries ?? []), ...(more.data?.entries ?? [])];
 	const loading =
 		scope === "friends" ? friends.isLoading : global.isLoading && offset === 0;
+	const noRegion =
+		isGlobal && !global.data?.region?.city && !global.data?.region?.country;
 
-	let content: React.ReactNode;
-	if (loading) {
-		content = <LeaderboardSkeleton />;
-	} else if (rows.length === 0) {
-		content = (
-			<Card>
-				<CardContent className="p-8 text-center text-muted-foreground text-sm">
-					No rankings yet. Ring some friends to start climbing.
-				</CardContent>
-			</Card>
-		);
-	} else {
-		content = (
-			<Card>
-				<CardContent className="divide-y">
-					{rows.map((entry, index) => (
-						<Reveal index={index} key={entry.id}>
-							<Row
-								highlight={entry.id === me?.id}
-								name={entry.name}
-								points={entry.points}
-								rank={entry.rank}
-							/>
-						</Reveal>
-					))}
-				</CardContent>
-			</Card>
-		);
-	}
+	const switchScope = (next: Scope) => {
+		setScope(next);
+		setOffset(0);
+	};
 
 	return (
 		<div className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -83,22 +112,20 @@ function LeaderboardRoute() {
 				</div>
 			</Reveal>
 
-			<div className="mb-6 flex gap-2">
-				<TabButton
-					active={scope === "friends"}
-					label="Friends"
-					onClick={() => setScope("friends")}
-				/>
-				<TabButton
-					active={scope === "global"}
-					label="Global"
-					onClick={() => setScope("global")}
-				/>
+			<div className="mb-6 flex flex-wrap gap-2">
+				{TABS.map((tab) => (
+					<TabButton
+						active={scope === tab.key}
+						key={tab.key}
+						label={tab.label}
+						onClick={() => switchScope(tab.key)}
+					/>
+				))}
 			</div>
 
-			{content}
+			{renderBody()}
 
-			{scope === "global" && global.data?.nextCursor ? (
+			{isGlobal && global.data?.nextCursor ? (
 				<Button
 					className="mt-4 w-full rounded-full"
 					onClick={() => setOffset(rows.length)}
@@ -109,6 +136,58 @@ function LeaderboardRoute() {
 			) : null}
 		</div>
 	);
+
+	function renderBody() {
+		if (scope === "area" && noRegion) {
+			return (
+				<Card>
+					<CardContent className="p-8 text-center text-muted-foreground text-sm">
+						We detect your area from your connection automatically — open the
+						app once and people nearby will show up here.
+					</CardContent>
+				</Card>
+			);
+		}
+		if (loading) {
+			return <LeaderboardSkeleton />;
+		}
+		if (rows.length === 0) {
+			return (
+				<Card>
+					<CardContent className="p-8 text-center text-muted-foreground text-sm">
+						No rankings yet. Ring some friends to start climbing.
+					</CardContent>
+				</Card>
+			);
+		}
+		return (
+			<Card>
+				<CardContent className="divide-y">
+					{rows.map((entry, index) => (
+						<Reveal index={index} key={entry.id}>
+							<Row
+								accepting={acceptRequest.isPending}
+								avatarId={entry.avatarId}
+								highlight={entry.id === me?.id}
+								incomingFriendshipId={entry.incomingFriendshipId ?? null}
+								name={entry.name}
+								onAccept={() =>
+									acceptRequest.mutate({
+										friendshipId: entry.incomingFriendshipId ?? "",
+									})
+								}
+								onSend={() => sendRequest.mutate({ targetUserId: entry.id })}
+								points={entry.points}
+								rank={entry.rank}
+								relationship={entry.relationship as FriendRelationship}
+								sending={sendRequest.isPending}
+							/>
+						</Reveal>
+					))}
+				</CardContent>
+			</Card>
+		);
+	}
 }
 
 function TabButton({
@@ -135,24 +214,41 @@ function TabButton({
 	);
 }
 
-function Row({
-	rank,
-	name,
-	points,
-	highlight,
-}: {
-	rank: number;
+interface LeaderboardEntry {
+	avatarId?: keyof typeof avatarSpecs | null;
+	incomingFriendshipId: string | null;
 	name: string;
 	points: number;
+	rank: number;
+	relationship: FriendRelationship;
+}
+
+function Row({
+	accepting,
+	avatarId,
+	highlight,
+	incomingFriendshipId,
+	name,
+	onAccept,
+	onSend,
+	points,
+	rank,
+	relationship,
+	sending,
+}: LeaderboardEntry & {
+	accepting: boolean;
 	highlight?: boolean;
+	onAccept: () => void;
+	onSend: () => void;
+	sending: boolean;
 }) {
 	return (
 		<div
-			className={`flex items-center justify-between px-4 py-3 ${highlight ? "bg-primary/10" : ""}`}
+			className={`flex items-center justify-between gap-2 px-4 py-3 ${highlight ? "bg-primary/10" : ""}`}
 		>
-			<div className="flex items-center gap-3">
+			<div className="flex min-w-0 items-center gap-3">
 				<span
-					className={`flex h-7 w-7 items-center justify-center rounded-full font-semibold text-xs ${
+					className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-semibold text-xs ${
 						rank <= 3
 							? "bg-primary text-primary-foreground"
 							: "bg-muted text-foreground"
@@ -160,14 +256,25 @@ function Row({
 				>
 					{rank}
 				</span>
-				<span className="font-medium text-foreground text-sm">
+				<AppAvatar avatarId={avatarId} name={name} size="xs" />
+				<span className="truncate font-medium text-foreground text-sm">
 					{name}
 					{highlight ? " (you)" : ""}
 				</span>
 			</div>
-			<span className="font-semibold text-foreground text-sm">
-				{points.toLocaleString()}
-			</span>
+			<div className="flex shrink-0 items-center gap-2">
+				<span className="font-semibold text-foreground text-sm">
+					{points.toLocaleString()}
+				</span>
+				<FriendActionButton
+					accepting={accepting}
+					incomingFriendshipId={incomingFriendshipId}
+					onAccept={onAccept}
+					onSend={onSend}
+					relationship={relationship}
+					sending={sending}
+				/>
+			</div>
 		</div>
 	);
 }

@@ -7,9 +7,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
-import { authClient } from "@/lib/auth-client";
+import { authClient, signUpEmail } from "@/lib/auth-client";
 
 import Loader from "./loader";
+
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,24}$/;
 
 export default function SignUpForm({
 	onSwitchToSignIn,
@@ -27,14 +29,16 @@ export default function SignUpForm({
 			email: "",
 			name: "",
 			password: "",
+			username: "",
 		},
 		onSubmit: async ({ value }) => {
-			await authClient.signUp.email(
+			await signUpEmail(
 				{
 					callbackURL: `${window.location.origin}/verify-email`,
 					email: value.email,
 					name: value.name,
 					password: value.password,
+					username: value.username.trim().toLowerCase(),
 				},
 				{
 					onError: (error) => {
@@ -58,6 +62,14 @@ export default function SignUpForm({
 				email: z.email("Invalid email address"),
 				name: z.string().min(2, "Name must be at least 2 characters"),
 				password: z.string().min(8, "Password must be at least 8 characters"),
+				username: z
+					.string()
+					.trim()
+					.min(3, "Username must be at least 3 characters")
+					.regex(
+						USERNAME_REGEX,
+						"Only letters, numbers, and underscores (max 24)"
+					),
 			}),
 		},
 	});
@@ -128,6 +140,30 @@ export default function SignUpForm({
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 									placeholder="Doorbell legend"
+									value={field.state.value}
+								/>
+								{field.state.meta.errors.map((error) => (
+									<p className="text-destructive" key={error?.message}>
+										{error?.message}
+									</p>
+								))}
+							</div>
+						)}
+					</form.Field>
+				</div>
+
+				<div>
+					<form.Field name="username">
+						{(field) => (
+							<div className="space-y-2">
+								<Label htmlFor={field.name}>Username</Label>
+								<Input
+									autoComplete="username"
+									id={field.name}
+									name={field.name}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+									placeholder="doorbell_legend"
 									value={field.state.value}
 								/>
 								{field.state.meta.errors.map((error) => (

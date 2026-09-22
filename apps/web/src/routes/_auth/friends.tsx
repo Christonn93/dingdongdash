@@ -1,4 +1,5 @@
 import { AppAvatar } from "@dingdongdash/ui/avatars/app-avatar";
+import type { avatarSpecs } from "@dingdongdash/ui/avatars/avatar-config";
 import { Button } from "@dingdongdash/ui/components/button";
 import {
 	Card,
@@ -8,9 +9,10 @@ import {
 } from "@dingdongdash/ui/components/card";
 import { Skeleton } from "@dingdongdash/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { FriendActionButton } from "@/components/friend-action";
 import { Reveal } from "@/components/reveal";
 import { readContactPhoneHashes } from "@/utils/contacts";
 import { shareInvite } from "@/utils/invite";
@@ -22,6 +24,11 @@ export const Route = createFileRoute("/_auth/friends")({
 
 function FriendsRoute() {
 	const friends = useQuery(trpc.friends.list.queryOptions());
+	const discover = useQuery(
+		trpc.friends.discover.queryOptions(undefined, {
+			refetchInterval: 30_000,
+		})
+	);
 
 	const syncMutation = useMutation(
 		trpc.friends.importContacts.mutationOptions({
@@ -36,6 +43,16 @@ function FriendsRoute() {
 	const acceptMutation = useMutation(
 		trpc.friends.acceptRequest.mutationOptions({
 			onSuccess: () => friends.refetch(),
+			onError: (error) => toast.error(error.message),
+		})
+	);
+
+	const sendRequestMutation = useMutation(
+		trpc.friends.sendRequest.mutationOptions({
+			onSuccess: () => {
+				toast.success("Friend request sent");
+				discover.refetch();
+			},
 			onError: (error) => toast.error(error.message),
 		})
 	);
@@ -100,6 +117,30 @@ function FriendsRoute() {
 	const { accepted = [], incoming = [], outgoing = [] } = friends.data ?? {};
 	const hasRequests = incoming.length > 0;
 	const hasSent = outgoing.length > 0;
+
+	// Light in-app notification: toast when a new request arrives between polls.
+	const prevRequestCount = useRef(incoming.length);
+	useEffect(() => {
+		const previous = prevRequestCount.current;
+		prevRequestCount.current = incoming.length;
+		if (incoming.length > previous) {
+			toast.info("You have a new friend request");
+		}
+	}, [incoming.length]);
+
+	const handleDiscoverSend = useCallback(
+		(targetUserId: string) => {
+			sendRequestMutation.mutate({ targetUserId });
+		},
+		[sendRequestMutation]
+	);
+
+	const handleDiscoverAccept = useCallback(
+		(friendshipId: string) => {
+			acceptMutation.mutate({ friendshipId });
+		},
+		[acceptMutation]
+	);
 
 	return (
 		<div className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -254,6 +295,34 @@ function FriendsRoute() {
 
 					<Reveal index={3}>
 						<Section title="Find more friends">
+							<div className="mb-4 grid gap-4 sm:grid-cols-2">
+								<DiscoveryCard
+									empty={
+										discover.data?.area.length === 0
+											? "No neighbors yet — we detect your area from your connection."
+											: "Loading…"
+									}
+									onAccept={handleDiscoverAccept}
+									onSend={handleDiscoverSend}
+									rows={discover.data?.area ?? []}
+									sending={sendRequestMutation.isPending}
+									title="People nearby"
+									toScope="area"
+								/>
+								<DiscoveryCard
+									empty={
+										discover.data?.similar.length === 0
+											? "No one in your score range yet. Keep ringing to climb."
+											: "Loading…"
+									}
+									onAccept={handleDiscoverAccept}
+									onSend={handleDiscoverSend}
+									rows={discover.data?.similar ?? []}
+									sending={sendRequestMutation.isPending}
+									title="Similar scores"
+									toScope="score"
+								/>
+							</div>
 							<div className="grid gap-4 sm:grid-cols-2">
 								<Card>
 									<CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -340,17 +409,15 @@ function EmptyFriends({
 				<AppAvatar avatarId="cat" name="Cat" size="sm" />
 			</div>
 			<div className="max-w-sm space-y-1">
-				<p className="font-medium text-foreground">Your doorstep is quiet for now.</p>
+				<p className="font-medium text-foreground">
+					Your doorstep is quiet for now.
+				</p>
 				<p className="text-muted-foreground text-sm">
 					Invite someone or find friends from your contacts to start ringing.
 				</p>
 			</div>
 			<div className="flex flex-wrap items-center justify-center gap-2">
-				<Button
-					disabled={invitePending}
-					onClick={onInvite}
-					size="sm"
-				>
+				<Button disabled={invitePending} onClick={onInvite} size="sm">
 					{invitePending ? "Creating…" : "Invite a friend"}
 				</Button>
 				<Button
@@ -363,5 +430,73 @@ function EmptyFriends({
 				</Button>
 			</div>
 		</div>
+	);
+}
+
+interface DiscoveryRow {
+	avatarId?: keyof typeof avatarSpecs | null;
+	id: string;
+	incomingFriendshipId: string | null;
+	name: string;
+	points: number;
+	relationship: "me" | "friend" | "incoming" | "outgoing" | "blocked" | "none";
+}
+
+function DiscoveryCard({
+	empty,
+	onAccept,
+	onSend,
+	rows,
+	sending,
+	title,
+	toScope,
+}: {
+	empty: string;
+	onAccept: (friendshipId: string) => void;
+	onSend: (targetUserId: string) => void;
+	rows: DiscoveryRow[];
+	sending: boolean;
+	title: string;
+	toScope: "area" | "score";
+}) {
+	return (
+		<Card>
+			<CardContent className="space-y-1">
+				<div className="mb-1 flex items-center justify-between gap-2">
+					<CardTitle className="text-base">{title}</CardTitle>
+					<Link
+						className="shrink-0 text-primary text-xs hover:underline"
+						search={{ scope: toScope }}
+						to="/leaderboard"
+					>
+						See all
+					</Link>
+				</div>
+				{rows.length === 0 ? (
+					<p className="py-3 text-muted-foreground text-sm">{empty}</p>
+				) : (
+					rows.map((row) => (
+						<div
+							className="flex items-center justify-between gap-2 py-1.5"
+							key={row.id}
+						>
+							<div className="flex min-w-0 items-center gap-2.5">
+								<AppAvatar avatarId={row.avatarId} name={row.name} size="xs" />
+								<span className="truncate text-sm">{row.name}</span>
+								<span className="shrink-0 text-muted-foreground text-xs">
+									{row.points.toLocaleString()} pts
+								</span>
+							</div>
+							<FriendActionButton
+								onAccept={() => onAccept(row.incomingFriendshipId ?? "")}
+								onSend={() => onSend(row.id)}
+								relationship={row.relationship}
+								sending={sending}
+							/>
+						</div>
+					))
+				)}
+			</CardContent>
+		</Card>
 	);
 }
