@@ -39,7 +39,7 @@ export default function SignInForm({
 						navigate({
 							to: "/dashboard",
 						});
-						toast.success("Sign in successful");
+						toast.success("Welcome back!");
 					},
 				}
 			);
@@ -57,9 +57,7 @@ export default function SignInForm({
 	}
 
 	return (
-		<div className="mx-auto mt-10 w-full max-w-md p-6">
-			<h1 className="mb-6 text-center font-bold text-3xl">Welcome Back</h1>
-
+		<div className="space-y-4">
 			<form
 				className="space-y-4"
 				onSubmit={(e) => {
@@ -78,11 +76,12 @@ export default function SignInForm({
 									name={field.name}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
+									placeholder="you@example.com"
 									type="email"
 									value={field.state.value}
 								/>
 								{field.state.meta.errors.map((error) => (
-									<p className="text-red-500" key={error?.message}>
+									<p className="text-destructive" key={error?.message}>
 										{error?.message}
 									</p>
 								))}
@@ -105,7 +104,7 @@ export default function SignInForm({
 									value={field.state.value}
 								/>
 								{field.state.meta.errors.map((error) => (
-									<p className="text-red-500" key={error?.message}>
+									<p className="text-destructive" key={error?.message}>
 										{error?.message}
 									</p>
 								))}
@@ -122,25 +121,27 @@ export default function SignInForm({
 				>
 					{({ canSubmit, isSubmitting }) => (
 						<Button
-							className="w-full"
+							className="w-full rounded-full"
 							disabled={!canSubmit || isSubmitting}
+							size="lg"
 							type="submit"
 						>
-							{isSubmitting ? "Submitting..." : "Sign In"}
+							{isSubmitting ? "Opening the door…" : "Sign In"}
 						</Button>
 					)}
 				</form.Subscribe>
 			</form>
 
-			<div className="mt-4 text-center">
+			<p className="text-center text-muted-foreground text-sm">
+				New here?{" "}
 				<Button
-					className="text-indigo-600 hover:text-indigo-800"
+					className="h-auto p-0 font-semibold text-primary"
 					onClick={onSwitchToSignUp}
 					variant="link"
 				>
-					Need an account? Sign Up
+					Create an account
 				</Button>
-			</div>
+			</p>
 		</div>
 	);
 }

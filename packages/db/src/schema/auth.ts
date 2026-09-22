@@ -1,5 +1,6 @@
 import { defineRelationsPart, sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { STARTING_POINTS } from "../game";
 
 export const user = sqliteTable("user", {
 	createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -18,7 +19,7 @@ export const user = sqliteTable("user", {
 	image: text("image"),
 	name: text("name").notNull(),
 	phoneHash: text("phone_hash").unique(),
-	points: integer("points").default(1000).notNull(),
+	points: integer("points").default(STARTING_POINTS).notNull(),
 	timeShieldArmed: integer("time_shield_armed", { mode: "boolean" })
 		.default(false)
 		.notNull(),

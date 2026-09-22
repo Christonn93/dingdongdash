@@ -1,12 +1,63 @@
-import { LEDGER_PAGE_SIZE } from "@dingdongdash/db/game";
+import type { Database } from "@dingdongdash/db";
+import { DAILY_BONUS_POINTS, LEDGER_PAGE_SIZE } from "@dingdongdash/db/game";
 import { pointsLedger, user } from "@dingdongdash/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, lt, or } from "drizzle-orm";
+import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import z from "zod";
 
 import { protectedProcedure, router } from "../index";
 
+function todayUtcKey(date = new Date()): string {
+	return date.toISOString().slice(0, 10);
+}
+
+async function lastDailyBonus(
+	db: Database,
+	userId: string
+): Promise<{ claimedAtUtc: string } | null> {
+	const [row] = await db
+		.select({ createdAt: pointsLedger.createdAt })
+		.from(pointsLedger)
+		.where(
+			and(
+				eq(pointsLedger.userId, userId),
+				eq(pointsLedger.reason, "daily_bonus")
+			)
+		)
+		.orderBy(desc(pointsLedger.createdAt), desc(pointsLedger.id))
+		.limit(1);
+	if (!row) {
+		return null;
+	}
+	const createdAt =
+		row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt);
+	return { claimedAtUtc: todayUtcKey(createdAt) };
+}
+
 export const pointsRouter = router({
+	claimDailyBonus: protectedProcedure.mutation(async ({ ctx }) => {
+		const { db, session } = ctx;
+		const last = await lastDailyBonus(db, session.user.id);
+		if (last && last.claimedAtUtc === todayUtcKey()) {
+			return { granted: false, points: DAILY_BONUS_POINTS };
+		}
+
+		await db.batch([
+			db.insert(pointsLedger).values({
+				amount: DAILY_BONUS_POINTS,
+				id: crypto.randomUUID(),
+				reason: "daily_bonus",
+				userId: session.user.id,
+			}),
+			db
+				.update(user)
+				.set({ points: sql`${user.points} + ${DAILY_BONUS_POINTS}` })
+				.where(eq(user.id, session.user.id)),
+		]);
+
+		return { granted: true, points: DAILY_BONUS_POINTS };
+	}),
+
 	getBalance: protectedProcedure.query(async ({ ctx }) => {
 		const { db, session } = ctx;
 		const me = await db
@@ -19,6 +70,14 @@ export const pointsRouter = router({
 			throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 		}
 		return { balance: meRow.points };
+	}),
+	getDailyBonusStatus: protectedProcedure.query(async ({ ctx }) => {
+		const last = await lastDailyBonus(ctx.db, ctx.session.user.id);
+		const available = !last || last.claimedAtUtc !== todayUtcKey();
+		return {
+			available,
+			points: DAILY_BONUS_POINTS,
+		};
 	}),
 
 	getLedger: protectedProcedure

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { Reveal } from "@/components/reveal";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_auth/leaderboard")({
@@ -51,14 +52,15 @@ function LeaderboardRoute() {
 		content = (
 			<Card>
 				<CardContent className="divide-y">
-					{rows.map((entry) => (
-						<Row
-							highlight={entry.id === me?.id}
-							key={entry.id}
-							name={entry.name}
-							points={entry.points}
-							rank={entry.rank}
-						/>
+					{rows.map((entry, index) => (
+						<Reveal index={index} key={entry.id}>
+							<Row
+								highlight={entry.id === me?.id}
+								name={entry.name}
+								points={entry.points}
+								rank={entry.rank}
+							/>
+						</Reveal>
 					))}
 				</CardContent>
 			</Card>
@@ -67,29 +69,29 @@ function LeaderboardRoute() {
 
 	return (
 		<div className="mx-auto w-full max-w-3xl px-4 py-8">
-			<div className="mb-6">
-				<h1 className="font-semibold text-2xl text-foreground tracking-tight">
-					Leaderboard
-				</h1>
-				<p className="mt-1 text-muted-foreground text-sm">
-					Climb the ranks.{" "}
-					{me
-						? `You're #${me.rank ?? "?"} among friends, #${me.globalRank} globally.`
-						: ""}
-				</p>
-			</div>
+			<Reveal>
+				<div className="mb-6">
+					<h1 className="font-display font-extrabold text-2xl tracking-tight">
+						Leaderboard
+					</h1>
+					<p className="mt-1 text-muted-foreground text-sm">
+						Climb the ranks.{" "}
+						{me
+							? `You're #${me.rank ?? "?"} among friends, #${me.globalRank} globally.`
+							: ""}
+					</p>
+				</div>
+			</Reveal>
 
 			<div className="mb-6 flex gap-2">
 				<TabButton
 					active={scope === "friends"}
 					label="Friends"
-					// biome-ignore lint/performance/noJsxPropsBind: scope switch
 					onClick={() => setScope("friends")}
 				/>
 				<TabButton
 					active={scope === "global"}
 					label="Global"
-					// biome-ignore lint/performance/noJsxPropsBind: scope switch
 					onClick={() => setScope("global")}
 				/>
 			</div>
@@ -98,8 +100,7 @@ function LeaderboardRoute() {
 
 			{scope === "global" && global.data?.nextCursor ? (
 				<Button
-					className="mt-4 w-full"
-					// biome-ignore lint/performance/noJsxPropsBind: pagination action
+					className="mt-4 w-full rounded-full"
 					onClick={() => setOffset(rows.length)}
 					variant="outline"
 				>
@@ -121,7 +122,7 @@ function TabButton({
 }) {
 	return (
 		<button
-			className={`rounded-md px-3 py-1.5 font-medium text-sm transition-colors ${
+			className={`rounded-full px-4 py-1.5 font-medium text-sm transition-colors ${
 				active
 					? "bg-primary text-primary-foreground"
 					: "bg-muted text-muted-foreground hover:bg-muted/70"

@@ -27,7 +27,7 @@ function DrawerLayout() {
 			}}
 		>
 			<Drawer.Screen
-				name="index"
+				name="dashboard"
 				options={{
 					drawerIcon: ({ size, color, focused }) => (
 						<Ionicons

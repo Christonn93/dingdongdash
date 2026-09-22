@@ -10,6 +10,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
+import { Reveal } from "@/components/reveal";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
@@ -65,11 +66,7 @@ function InviteRoute() {
 		content = (
 			<div className="text-center">
 				<p className="text-destructive text-sm">{accept.error.message}</p>
-				<Button
-					className="mt-3"
-					// biome-ignore lint/performance/noJsxPropsBind: single retry action
-					onClick={() => accept.mutate({ code })}
-				>
+				<Button className="mt-3" onClick={() => accept.mutate({ code })}>
 					Try again
 				</Button>
 			</div>
@@ -91,21 +88,23 @@ function InviteRoute() {
 
 	return (
 		<div className="mx-auto flex w-full max-w-md flex-col items-center justify-center px-4 py-16">
-			<Card className="w-full">
-				<CardHeader className="text-center">
-					<CardTitle className="text-xl">
-						{authed ? "Join the friends circle" : "You've been invited"}
-					</CardTitle>
-					<CardDescription>
-						{authed
-							? "Accepting the invite adds you as friends instantly."
-							: "Sign in or create an account to accept this invite."}
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="flex flex-col items-center gap-4">
-					{content}
-				</CardContent>
-			</Card>
+			<Reveal>
+				<Card className="w-full">
+					<CardHeader className="text-center">
+						<CardTitle className="font-display font-extrabold text-xl tracking-tight">
+							{authed ? "Join the friends circle" : "You've been invited"}
+						</CardTitle>
+						<CardDescription>
+							{authed
+								? "Accepting the invite adds you as friends instantly."
+								: "Sign in or create an account to accept this invite."}
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="flex flex-col items-center gap-4">
+						{content}
+					</CardContent>
+				</Card>
+			</Reveal>
 		</div>
 	);
 }

@@ -1,4 +1,4 @@
-export const STARTING_POINTS = 1000;
+export const STARTING_POINTS = 100;
 
 export const RING_DURATION_MS = 30_000;
 
@@ -18,6 +18,9 @@ export const MAX_INVITES_PER_DAY = 20;
 export const CATCH_REWARD = 10;
 export const CATCH_PENALTY = 5;
 export const DITCH_PENALTY = 10;
+
+/** Points granted once per UTC day for logging in. */
+export const DAILY_BONUS_POINTS = 25;
 
 /** Extra seconds a Time Shield adds to an incoming ring's countdown. */
 export const TIME_SHIELD_EXTENSION_MS = 15_000;

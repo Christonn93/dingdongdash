@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 import {
 	Button,
 	Chip,
@@ -12,7 +13,9 @@ import { useCallback } from "react";
 import { ScrollView, Share, Text, View } from "react-native";
 
 import { Container } from "@/components/container";
+import { DoorbellButton } from "@/components/door/doorbell-button";
 import { readContactPhoneHashes } from "@/lib/contacts";
+import { playSound } from "@/lib/sound";
 import { trpc } from "@/utils/trpc";
 
 export default function FriendsScreen() {
@@ -54,7 +57,11 @@ export default function FriendsScreen() {
 				toast.show({ label: error.message, variant: "danger" });
 			},
 			onSuccess: () => {
-				toast.show({ label: "Doorbell rung!", variant: "success" });
+				Haptics.notificationAsync(
+					Haptics.NotificationFeedbackType.Success
+				).catch(() => undefined);
+				playSound("chime");
+				toast.show({ label: "DING DONG! Doorbell rung.", variant: "success" });
 			},
 		})
 	);
@@ -181,17 +188,17 @@ export default function FriendsScreen() {
 												{request.requester.email}
 											</Text>
 										</View>
-										<Button
-											isDisabled={acceptMutation.isPending}
+										<DoorbellButton
+											disabled={acceptMutation.isPending}
+											icon="arrow"
+											label="Accept"
 											onPress={() =>
 												acceptMutation.mutate({
 													friendshipId: request.friendshipId,
 												})
 											}
 											size="sm"
-										>
-											<Button.Label>Accept</Button.Label>
-										</Button>
+										/>
 									</View>
 								</Surface>
 							))}
@@ -268,13 +275,14 @@ export default function FriendsScreen() {
 											{friendship.friend.points} points
 										</Text>
 									</View>
-									<Button
-										isDisabled={ringMutation.isPending}
+									<DoorbellButton
+										disabled={ringMutation.isPending}
+										icon="bell"
+										label="Ring"
 										onPress={() => handleRing(friendship.friend.id)}
 										size="sm"
-									>
-										<Button.Label>Ring</Button.Label>
-									</Button>
+										variant="secondary"
+									/>
 								</View>
 							</Surface>
 						))}

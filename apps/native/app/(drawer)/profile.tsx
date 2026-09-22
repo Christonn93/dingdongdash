@@ -11,17 +11,21 @@ import {
 	useThemeColor,
 	useToast,
 } from "heroui-native";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 import { Container } from "@/components/container";
+import { PointsBadge } from "@/components/door/points-badge";
 import { authClient } from "@/lib/auth-client";
 import { hashPhoneNumber, normalizePhoneNumber } from "@/lib/contacts";
+import { rankForPoints } from "@/lib/game";
 import { queryClient, trpc } from "@/utils/trpc";
 
 export default function ProfileScreen() {
 	const { toast } = useToast();
 	const dangerColor = useThemeColor("danger");
+	const accentColor = useThemeColor("accent");
+	const successColor = useThemeColor("success");
 
 	const me = useQuery(trpc.users.me.queryOptions());
 	const [ledgerCursor, setLedgerCursor] = useState<string | undefined>();
@@ -29,10 +33,17 @@ export default function ProfileScreen() {
 		trpc.points.getLedger.queryOptions({ cursor: ledgerCursor, limit: 20 })
 	);
 
+	const previousPoints = useRef<number | null>(null);
 	const [name, setName] = useState("");
 	const [phone, setPhone] = useState("");
 
 	const user = me.data?.user;
+	const points = user?.points ?? 1000;
+	const delta =
+		previousPoints.current === null ? null : points - previousPoints.current;
+	if (user && previousPoints.current !== user.points) {
+		previousPoints.current = user.points;
+	}
 
 	const updateName = useMutation(
 		trpc.users.updateProfile.mutationOptions({
@@ -96,22 +107,48 @@ export default function ProfileScreen() {
 	return (
 		<Container>
 			<ScrollView className="flex-1" contentContainerClassName="p-4">
-				<Surface className="mb-4 rounded-lg p-4" variant="secondary">
+				<View
+					style={{
+						backgroundColor: accentColor,
+						borderRadius: 24,
+						boxShadow: "0 10px 30px rgba(249,115,22,0.35)",
+						marginBottom: 16,
+						padding: 18,
+					}}
+				>
 					<View className="flex-row items-center justify-between">
 						<View className="flex-1">
-							<Text className="font-semibold text-foreground text-lg">
+							<Text className="font-extrabold text-white text-xl">
 								{user?.name ?? "…"}
 							</Text>
-							<Text className="text-muted text-sm">{user?.email}</Text>
-						</View>
-						<View className="items-end">
-							<Text className="font-bold text-3xl text-foreground">
-								{user?.points ?? "…"}
+							<Text className="mt-0.5 text-sm text-white/80">
+								{user?.email}
 							</Text>
-							<Text className="text-muted text-xs">points</Text>
+							<View
+								style={{
+									alignSelf: "flex-start",
+									backgroundColor: "rgba(255,255,255,0.18)",
+									borderColor: "rgba(255,255,255,0.35)",
+									borderRadius: 999,
+									borderWidth: 1,
+									marginTop: 8,
+									paddingHorizontal: 10,
+									paddingVertical: 4,
+								}}
+							>
+								<Text className="font-bold text-white text-xs">
+									{rankForPoints(points).emoji} {rankForPoints(points).title}
+								</Text>
+							</View>
 						</View>
+						<PointsBadge
+							delta={delta}
+							deltaKey={points}
+							points={points}
+							size="md"
+						/>
 					</View>
-				</Surface>
+				</View>
 
 				<Surface className="mb-4 rounded-lg p-4" variant="secondary">
 					<Text className="mb-3 font-medium text-foreground">Display name</Text>
@@ -205,27 +242,47 @@ export default function ProfileScreen() {
 					{!ledger.isLoading && (ledger.data?.entries.length ?? 0) === 0 && (
 						<Text className="text-muted text-sm">No activity yet.</Text>
 					)}
-					{ledger.data?.entries.map((entry) => (
-						<View
-							className="flex-row items-center justify-between border-background border-b py-2"
-							key={entry.id}
-						>
-							<View className="flex-1">
-								<Text className="text-foreground text-sm capitalize">
-									{entry.reason}
-								</Text>
-								<Text className="text-muted text-xs">
-									{new Date(entry.createdAt).toLocaleString()}
+					{ledger.data?.entries.map((entry) => {
+						const isPositive = entry.amount >= 0;
+						const tone = isPositive ? successColor : dangerColor;
+						return (
+							<View
+								className="flex-row items-center justify-between border-background border-b py-2"
+								key={entry.id}
+							>
+								<View className="flex-1 flex-row items-center gap-3">
+									<View
+										style={{
+											alignItems: "center",
+											backgroundColor: `${tone}22`,
+											borderRadius: 15,
+											height: 30,
+											justifyContent: "center",
+											width: 30,
+										}}
+									>
+										<Ionicons
+											color={tone}
+											name={reasonIcon(entry.reason)}
+											size={16}
+										/>
+									</View>
+									<View>
+										<Text className="text-foreground text-sm capitalize">
+											{reasonLabel(entry.reason)}
+										</Text>
+										<Text className="text-muted text-xs">
+											{new Date(entry.createdAt).toLocaleString()}
+										</Text>
+									</View>
+								</View>
+								<Text className="font-bold text-sm" style={{ color: tone }}>
+									{isPositive ? "+" : ""}
+									{entry.amount}
 								</Text>
 							</View>
-							<Text
-								className={`font-semibold text-sm ${entry.amount >= 0 ? "text-success" : "text-danger"}`}
-							>
-								{entry.amount >= 0 ? "+" : ""}
-								{entry.amount}
-							</Text>
-						</View>
-					))}
+						);
+					})}
 					{ledger.data?.nextCursor ? (
 						<Button
 							className="mt-3 self-center"
@@ -246,4 +303,27 @@ export default function ProfileScreen() {
 			</ScrollView>
 		</Container>
 	);
+}
+
+const REASON_META: Record<
+	string,
+	{ icon: React.ComponentProps<typeof Ionicons>["name"]; label: string }
+> = {
+	adjustment: { icon: "swap-horizontal", label: "Adjustment" },
+	catch: { icon: "checkmark-circle", label: "Catch" },
+	daily_bonus: { icon: "gift", label: "Daily bonus" },
+	ditch_penalty: { icon: "close-circle", label: "Ditched" },
+	ditch_ring_penalty: { icon: "log-out-outline", label: "Ringer ditched" },
+	purchase: { icon: "cart-outline", label: "Purchase" },
+	signup_bonus: { icon: "gift-outline", label: "Welcome bonus" },
+};
+
+function reasonIcon(
+	reason: string
+): React.ComponentProps<typeof Ionicons>["name"] {
+	return REASON_META[reason]?.icon ?? "ellipsis-horizontal-circle";
+}
+
+function reasonLabel(reason: string): string {
+	return REASON_META[reason]?.label ?? reason.replaceAll("_", " ");
 }

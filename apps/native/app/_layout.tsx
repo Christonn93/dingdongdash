@@ -10,12 +10,14 @@ import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { queryClient } from "@/utils/trpc";
 
 export const unstable_settings = {
-	initialRouteName: "(drawer)",
+	initialRouteName: "index",
 };
 
 function StackLayout() {
 	return (
 		<Stack screenOptions={{}}>
+			<Stack.Screen name="index" options={{ headerShown: false }} />
+			<Stack.Screen name="login" options={{ headerShown: false }} />
 			<Stack.Screen name="(drawer)" options={{ headerShown: false }} />
 			<Stack.Screen
 				name="modal"

@@ -6,3 +6,6 @@ export { env as ENV } from "cloudflare:workers";
 
 /** Packaged desktop builds serve the frontend from their own origin, not CORS_ORIGIN. */
 export const desktopOrigins = ["views://mainview"];
+
+/** Expo dev server (Metro) origin for the native app. */
+export const nativeDevOrigins = ["http://localhost:8081"];

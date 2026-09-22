@@ -5,21 +5,171 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@dingdongdash/ui/components/card";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 
+import { AuthPanel } from "@/components/auth-panel";
+import { FrontDoor } from "@/components/front-door";
 import { InstallAppButton } from "@/components/install-app-button";
+import { ModeToggle } from "@/components/mode-toggle";
+import { Reveal } from "@/components/reveal";
+import { playDingDong, playSparkle, playThud } from "@/lib/audio";
 import { authClient } from "@/lib/auth-client";
+import { celebrate } from "@/lib/confetti";
+import { spring } from "@/lib/motion";
 
 export const Route = createFileRoute("/")({
 	component: LandingPage,
 });
 
+type Phase = "idle" | "opening" | "checking" | "reveal";
+
 function LandingPage() {
 	const { data: session } = authClient.useSession();
+	const navigate = useNavigate();
+	const [phase, setPhase] = useState<Phase>("idle");
+
+	const open = phase !== "idle";
+
+	const handleOpen = () => {
+		if (phase !== "idle") {
+			return;
+		}
+		playDingDong();
+		setPhase("opening");
+		window.setTimeout(() => {
+			playThud();
+			setPhase("checking");
+			window.setTimeout(() => {
+				if (session?.user) {
+					celebrate({ originX: 0.5, originY: 0.45, particleCount: 180 });
+					playSparkle();
+					navigate({ to: "/dashboard" });
+				} else {
+					setPhase("reveal");
+				}
+			}, 600);
+		}, 900);
+	};
+
+	const hint = getHint(phase);
 
 	return (
 		<div className="min-h-full overflow-x-hidden">
-			<Hero authed={!!session?.user} />
+			<section className="relative flex min-h-[100svh] flex-col overflow-hidden">
+				<FrontDoor hint={hint} label="17" onOpen={handleOpen} open={open} />
+
+				{/* Top bar */}
+				<div className="absolute inset-x-0 top-0 z-30">
+					<div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+						<div className="flex items-center gap-2 text-amber-50">
+							<span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-indigo-950/40 shadow-lg">
+								<svg
+									aria-hidden="true"
+									className="h-5 w-5 text-white"
+									fill="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.58.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.58 1 1 0 01-.25 1.01l-2.2 2.2z" />
+								</svg>
+							</span>
+							<span className="font-display font-extrabold text-lg tracking-tight">
+								DingDongDitch
+							</span>
+						</div>
+						<div className="flex items-center gap-2">
+							{session?.user ? (
+								<Button
+									className="rounded-full bg-amber-50/15 text-amber-50 backdrop-blur hover:bg-amber-50/25"
+									onClick={() => navigate({ to: "/dashboard" })}
+									size="sm"
+								>
+									Go to dashboard
+								</Button>
+							) : null}
+							<InstallAppButton />
+							<ModeToggle />
+						</div>
+					</div>
+				</div>
+
+				{/* Title */}
+				<AnimatePresence mode="wait">
+					{phase === "idle" && (
+						<motion.div
+							animate={{ opacity: 1, y: 0 }}
+							className="absolute inset-x-0 top-16 z-20 px-6 text-center"
+							exit={{ opacity: 0, y: -12 }}
+							initial={{ opacity: 0, y: -12 }}
+							key="title"
+							transition={spring}
+						>
+							<span className="inline-flex items-center gap-2 rounded-full border border-amber-200/30 bg-black/25 px-3 py-1 font-semibold text-amber-100 text-xs backdrop-blur">
+								Real-time social showdown
+							</span>
+							<h1 className="mx-auto mt-4 max-w-2xl font-display font-extrabold text-4xl text-amber-50 drop-shadow-[0_4px_20px_rgba(0,0,0,0.6)] sm:text-6xl">
+								Ring the doorbell.{" "}
+								<span className="bg-gradient-to-r from-amber-200 to-orange-300 bg-clip-text text-transparent">
+									Beat the clock.
+								</span>
+							</h1>
+							<p className="mx-auto mt-4 max-w-md text-amber-100/85 text-sm drop-shadow sm:text-base">
+								Ding a friend, they have 30 seconds to answer the door. Catch
+								them, or they ditch you.
+							</p>
+						</motion.div>
+					)}
+				</AnimatePresence>
+
+				{/* Checking chip */}
+				<AnimatePresence>
+					{phase === "checking" && (
+						<motion.div
+							animate={{ opacity: 1, scale: 1 }}
+							className="absolute inset-x-0 top-1/2 z-30 flex justify-center"
+							exit={{ opacity: 0, scale: 0.9 }}
+							initial={{ opacity: 0, scale: 0.9 }}
+							key="checking"
+							transition={spring}
+						>
+							<div className="flex items-center gap-2 rounded-full border border-amber-200/30 bg-black/40 px-5 py-2.5 font-medium text-amber-50 text-sm backdrop-blur">
+								<svg
+									className="h-4 w-4 animate-spin text-amber-200"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2.5"
+									viewBox="0 0 24 24"
+								>
+									<title>Loading</title>
+									<path
+										d="M12 3a9 9 0 109 9"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									/>
+								</svg>
+								Checking who's home…
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
+
+				{/* Login / sign-up reveal */}
+				<AnimatePresence>
+					{phase === "reveal" && (
+						<motion.div
+							animate={{ opacity: 1 }}
+							className="absolute inset-0 z-40 flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm"
+							exit={{ opacity: 0 }}
+							initial={{ opacity: 0 }}
+							key="auth"
+						>
+							<AuthPanel onBack={() => setPhase("idle")} />
+						</motion.div>
+					)}
+				</AnimatePresence>
+			</section>
+
 			<HowItWorks />
 			<Scoring />
 			<Features />
@@ -29,80 +179,17 @@ function LandingPage() {
 	);
 }
 
-function Hero({ authed }: { authed: boolean }) {
-	return (
-		<section className="relative mx-auto max-w-5xl px-6 py-20 text-center sm:py-28">
-			<div
-				aria-hidden="true"
-				className="pointer-events-none absolute inset-0 -z-10"
-			>
-				<div className="absolute top-0 left-1/2 h-[420px] w-[680px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
-			</div>
-
-			<span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-medium text-primary text-xs">
-				<svg
-					aria-hidden="true"
-					className="h-3.5 w-3.5"
-					fill="currentColor"
-					viewBox="0 0 24 24"
-				>
-					<path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.58.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.58 1 1 0 01-.25 1.01l-2.2 2.2z" />
-				</svg>
-				Real-time social game
-			</span>
-
-			<h1 className="mt-6 font-bold text-5xl text-foreground tracking-tight sm:text-7xl">
-				Ring the doorbell.
-				<br />
-				<span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">
-					Beat the clock.
-				</span>
-			</h1>
-
-			<p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-				Ding someone and see if they answer in time. Catch them for points — or
-				they ditch you and you lose. Every ring is a 30-second showdown.
-			</p>
-
-			<div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-				{authed ? (
-					<Link to="/dashboard">
-						<Button size="lg">
-							<svg
-								aria-hidden="true"
-								className="h-4 w-4"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								viewBox="0 0 24 24"
-							>
-								<path
-									d="M17 8l4 4m0 0l-4 4m4-4H3"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-								/>
-							</svg>
-							Go to the game
-						</Button>
-					</Link>
-				) : (
-					<Link to="/login">
-						<Button size="lg">Get started free</Button>
-					</Link>
-				)}
-				<Link to="/login">
-					<Button size="lg" variant="outline">
-						Sign in
-					</Button>
-				</Link>
-				<InstallAppButton />
-			</div>
-
-			<p className="mt-6 text-muted-foreground text-sm">
-				Everyone starts with 1,000 points. No sign-up cost. Free to play.
-			</p>
-		</section>
-	);
+function getHint(phase: Phase): string {
+	switch (phase) {
+		case "idle":
+			return "Ring the doorbell or tap the door to come inside";
+		case "opening":
+			return "Knock knock…";
+		case "checking":
+			return "Checking who's home…";
+		default:
+			return "Come on in";
+	}
 }
 
 function HowItWorks() {
@@ -127,7 +214,7 @@ function HowItWorks() {
 	return (
 		<section className="mx-auto max-w-5xl px-6 py-20">
 			<div className="text-center">
-				<h2 className="font-semibold text-3xl text-foreground tracking-tight sm:text-4xl">
+				<h2 className="font-display font-extrabold text-3xl tracking-tight sm:text-4xl">
 					How it works
 				</h2>
 				<p className="mx-auto mt-3 max-w-lg text-muted-foreground">
@@ -136,20 +223,22 @@ function HowItWorks() {
 			</div>
 
 			<div className="mt-12 grid gap-4 sm:grid-cols-3">
-				{steps.map((item) => (
-					<Card className="border-border/60" key={item.step}>
-						<CardHeader>
-							<span className="font-semibold text-primary text-sm">
-								{item.step}
-							</span>
-							<CardTitle className="mt-1 text-lg">{item.title}</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<p className="text-muted-foreground text-sm leading-relaxed">
-								{item.body}
-							</p>
-						</CardContent>
-					</Card>
+				{steps.map((item, index) => (
+					<Reveal index={index} key={item.step}>
+						<Card className="h-full">
+							<CardHeader>
+								<span className="font-bold font-display text-primary text-sm">
+									{item.step}
+								</span>
+								<CardTitle className="mt-1 text-lg">{item.title}</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<p className="text-muted-foreground text-sm leading-relaxed">
+									{item.body}
+								</p>
+							</CardContent>
+						</Card>
+					</Reveal>
 				))}
 			</div>
 		</section>
@@ -161,26 +250,26 @@ function Scoring() {
 		{
 			label: "Answer the door in time",
 			result: "+10 to you, −5 to the ringer",
-			tone: "text-green-600 dark:text-green-400",
+			tone: "text-success",
 		},
 		{
 			label: "Let the timer run out",
 			result: "−10 to you",
-			tone: "text-red-600 dark:text-red-400",
+			tone: "text-destructive",
 		},
 		{
 			label: "Starting balance",
-			result: "1,000 points",
+			result: "100 points",
 			tone: "text-foreground",
 		},
 	];
 
 	return (
-		<section className="border-border/60 border-y bg-muted/40 py-20">
+		<section className="border-y bg-muted/40 py-20">
 			<div className="mx-auto max-w-5xl px-6">
 				<div className="grid items-center gap-10 lg:grid-cols-2">
-					<div>
-						<h2 className="font-semibold text-3xl text-foreground tracking-tight sm:text-4xl">
+					<Reveal>
+						<h2 className="font-display font-extrabold text-3xl tracking-tight sm:text-4xl">
 							Every ring has real stakes
 						</h2>
 						<p className="mt-4 text-muted-foreground">
@@ -188,21 +277,18 @@ function Scoring() {
 							the client. You can't cheat the clock, and your points ledger is
 							append-only, so every gain and loss is auditable.
 						</p>
-					</div>
+					</Reveal>
 
 					<div className="space-y-3">
-						{rows.map((row) => (
-							<div
-								className="flex items-center justify-between rounded-lg border border-border/60 bg-background px-5 py-4"
-								key={row.label}
-							>
-								<span className="font-medium text-foreground text-sm">
-									{row.label}
-								</span>
-								<span className={`font-semibold text-sm ${row.tone}`}>
-									{row.result}
-								</span>
-							</div>
+						{rows.map((row, index) => (
+							<Reveal index={index} key={row.label}>
+								<div className="flex items-center justify-between rounded-2xl border bg-background px-5 py-4">
+									<span className="font-medium text-sm">{row.label}</span>
+									<span className={`font-semibold text-sm ${row.tone}`}>
+										{row.result}
+									</span>
+								</div>
+							</Reveal>
 						))}
 					</div>
 				</div>
@@ -269,7 +355,7 @@ function Features() {
 	return (
 		<section className="mx-auto max-w-5xl px-6 py-20">
 			<div className="text-center">
-				<h2 className="font-semibold text-3xl text-foreground tracking-tight sm:text-4xl">
+				<h2 className="font-display font-extrabold text-3xl tracking-tight sm:text-4xl">
 					Built to be fair, built to be loud
 				</h2>
 				<p className="mx-auto mt-3 max-w-lg text-muted-foreground">
@@ -279,30 +365,29 @@ function Features() {
 			</div>
 
 			<div className="mt-12 grid gap-4 sm:grid-cols-2">
-				{features.map((feature) => (
-					<div
-						className="flex gap-4 rounded-lg border border-border/60 p-5"
-						key={feature.title}
-					>
-						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-							<svg
-								aria-hidden="true"
-								className="h-5 w-5"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="1.8"
-								viewBox="0 0 24 24"
-							>
-								{icons[feature.icon]}
-							</svg>
+				{features.map((feature, index) => (
+					<Reveal index={index} key={feature.title}>
+						<div className="flex gap-4 rounded-2xl border bg-background p-5 transition-shadow hover:shadow-lg">
+							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+								<svg
+									aria-hidden="true"
+									className="h-5 w-5"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="1.8"
+									viewBox="0 0 24 24"
+								>
+									{icons[feature.icon]}
+								</svg>
+							</div>
+							<div>
+								<h3 className="font-semibold">{feature.title}</h3>
+								<p className="mt-1 text-muted-foreground text-sm">
+									{feature.body}
+								</p>
+							</div>
 						</div>
-						<div>
-							<h3 className="font-semibold text-foreground">{feature.title}</h3>
-							<p className="mt-1 text-muted-foreground text-sm">
-								{feature.body}
-							</p>
-						</div>
-					</div>
+					</Reveal>
 				))}
 			</div>
 		</section>
@@ -315,7 +400,7 @@ function InstallSection() {
 			<Card className="overflow-hidden border-primary/30 bg-primary/5">
 				<div className="flex flex-col items-center gap-6 px-8 py-14 text-center sm:flex-row sm:text-left">
 					<div className="flex-1">
-						<h2 className="font-semibold text-2xl text-foreground tracking-tight sm:text-3xl">
+						<h2 className="font-display font-extrabold text-2xl tracking-tight sm:text-3xl">
 							Put DingDongDitch on your home screen
 						</h2>
 						<p className="mt-3 text-muted-foreground">
@@ -334,7 +419,7 @@ function InstallSection() {
 
 function Footer() {
 	return (
-		<footer className="border-border/60 border-t py-10">
+		<footer className="border-t py-10">
 			<div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-muted-foreground text-sm sm:flex-row">
 				<span className="font-semibold text-foreground">DingDongDitch</span>
 				<span>Ring the doorbell. Beat the clock.</span>

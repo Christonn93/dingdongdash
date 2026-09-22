@@ -217,7 +217,7 @@ export default function SettingsScreen() {
 				</Surface>
 
 				<Text className="px-1 text-muted text-xs">
-					Push uses Expo's push service. Email uses Resend and SMS uses Twilio
+					Push uses Expo's push service. Email uses Resend and SMS uses Vonage
 					behind the scenes.
 				</Text>
 

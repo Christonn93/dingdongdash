@@ -11,6 +11,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { toast } from "sonner";
 
+import { Reveal } from "@/components/reveal";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_auth/store")({
@@ -69,68 +70,75 @@ function StoreRoute() {
 
 	return (
 		<div className="mx-auto w-full max-w-3xl px-4 py-8">
-			<div className="mb-6">
-				<h1 className="font-semibold text-2xl text-foreground tracking-tight">
-					Shop
-				</h1>
-				<p className="mt-1 text-muted-foreground text-sm">
-					Points top-ups and Time Shields. Purchases are non-refundable and
-					never redeemable for cash.
-				</p>
-			</div>
+			<Reveal>
+				<div className="mb-6">
+					<h1 className="font-display font-extrabold text-2xl tracking-tight">
+						Shop
+					</h1>
+					<p className="mt-1 text-muted-foreground text-sm">
+						Points top-ups and Time Shields. Purchases are non-refundable and
+						never redeemable for cash.
+					</p>
+				</div>
+			</Reveal>
 
 			{inventory.data ? (
-				<Card className="mb-6 border-primary/30 bg-primary/5">
-					<CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-						<div>
-							<CardTitle className="text-base">
-								Time Shields: {inventory.data.timeShields}
-							</CardTitle>
-							<CardDescription>
-								{armed
-									? "Armed — your next ring lasts 15s longer."
-									: "Arm a shield so you get more time to answer."}
-							</CardDescription>
-						</div>
-						<Button
-							disabled={armed || !hasShields}
-							onClick={handleArmShield}
-							variant="outline"
-						>
-							{armed ? "Armed" : "Arm shield"}
-						</Button>
-					</CardContent>
-				</Card>
-			) : null}
-
-			<div className="grid gap-4 sm:grid-cols-2">
-				{items.map((item) => (
-					<Card key={item.productId}>
-						<CardHeader>
-							<CardTitle className="text-base">
-								{item.kind === "points_pack"
-									? `${item.points.toLocaleString()} points`
-									: "Time Shield (×3)"}
-							</CardTitle>
-							<CardDescription>
-								{item.kind === "points_pack"
-									? "Add points to your balance."
-									: "+15s on your next incoming ring."}
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="flex items-center justify-between">
-							<span className="font-semibold text-foreground text-lg">
-								${(item.priceCents / 100).toFixed(2)}
-							</span>
+				<Reveal index={1}>
+					<Card className="mb-6 border-primary/30 bg-primary/5">
+						<CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+							<div>
+								<CardTitle className="text-base">
+									Time Shields: {inventory.data.timeShields}
+								</CardTitle>
+								<CardDescription>
+									{armed
+										? "Armed — your next ring lasts 15s longer."
+										: "Arm a shield so you get more time to answer."}
+								</CardDescription>
+							</div>
 							<Button
-								disabled={purchase.isPending}
-								// biome-ignore lint/performance/noJsxPropsBind: per-product buy action
-								onClick={() => handleBuy(item.productId)}
+								className="rounded-full"
+								disabled={armed || !hasShields}
+								onClick={handleArmShield}
+								variant="outline"
 							>
-								Buy
+								{armed ? "Armed" : "Arm shield"}
 							</Button>
 						</CardContent>
 					</Card>
+				</Reveal>
+			) : null}
+
+			<div className="grid gap-4 sm:grid-cols-2">
+				{items.map((item, index) => (
+					<Reveal index={index + 2} key={item.productId}>
+						<Card className="transition-shadow hover:shadow-lg">
+							<CardHeader>
+								<CardTitle className="text-base">
+									{item.kind === "points_pack"
+										? `${item.points.toLocaleString()} points`
+										: "Time Shield (×3)"}
+								</CardTitle>
+								<CardDescription>
+									{item.kind === "points_pack"
+										? "Add points to your balance."
+										: "+15s on your next incoming ring."}
+								</CardDescription>
+							</CardHeader>
+							<CardContent className="flex items-center justify-between">
+								<span className="font-semibold text-foreground text-lg">
+									${(item.priceCents / 100).toFixed(2)}
+								</span>
+								<Button
+									className="rounded-full"
+									disabled={purchase.isPending}
+									onClick={() => handleBuy(item.productId)}
+								>
+									Buy
+								</Button>
+							</CardContent>
+						</Card>
+					</Reveal>
 				))}
 			</div>
 

@@ -5,10 +5,12 @@ import {
 	createRootRouteWithContext,
 	HeadContent,
 	Outlet,
+	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import Header from "@/components/header";
+import { PageTransition } from "@/components/page-transition";
 import { ThemeProvider } from "@/components/theme-provider";
 import type { trpc } from "@/utils/trpc";
 
@@ -33,7 +35,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 			},
 			{
 				name: "theme-color",
-				content: "#4f46e5",
+				content: "#f0563d",
 			},
 		],
 		links: [
@@ -60,18 +62,38 @@ function RootComponent() {
 			<HeadContent />
 			<ThemeProvider
 				attribute="class"
-				defaultTheme="dark"
+				defaultTheme="light"
 				disableTransitionOnChange
 				storageKey="vite-ui-theme"
 			>
-				<div className="grid h-svh grid-rows-[auto_1fr]">
-					<Header />
-					<Outlet />
-				</div>
+				<Shell />
 				<Toaster richColors />
 			</ThemeProvider>
 			<TanStackRouterDevtools position="bottom-left" />
 			<ReactQueryDevtools buttonPosition="bottom-right" position="bottom" />
 		</>
+	);
+}
+
+function Shell() {
+	const isImmersive = useRouterState({
+		select: (state) => state.location.pathname === "/",
+	});
+
+	if (isImmersive) {
+		return (
+			<PageTransition>
+				<Outlet />
+			</PageTransition>
+		);
+	}
+
+	return (
+		<div className="grid h-svh grid-rows-[auto_1fr]">
+			<Header />
+			<PageTransition>
+				<Outlet />
+			</PageTransition>
+		</div>
 	);
 }

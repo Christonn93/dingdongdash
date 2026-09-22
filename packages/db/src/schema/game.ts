@@ -23,6 +23,7 @@ export const ledgerReason = [
 	"catch",
 	"ditch_penalty",
 	"ditch_ring_penalty",
+	"daily_bonus",
 	"purchase",
 	"adjustment",
 ] as const;

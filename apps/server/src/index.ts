@@ -5,7 +5,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
 import { createContext } from "./context";
-import { desktopOrigins, ENV } from "./env.server";
+import { desktopOrigins, ENV, nativeDevOrigins } from "./env.server";
 import { createAuth } from "./services";
 
 const app = new Hono();
@@ -17,7 +17,7 @@ app.use(
 		allowHeaders: ["Content-Type", "Authorization"],
 		allowMethods: ["GET", "POST", "OPTIONS"],
 		credentials: true,
-		origin: [ENV.CORS_ORIGIN, ...desktopOrigins],
+		origin: [ENV.CORS_ORIGIN, ...desktopOrigins, ...nativeDevOrigins],
 	})
 );
 

@@ -14,7 +14,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { type FormEvent, useCallback, useState } from "react";
 import { toast } from "sonner";
-
+import { AnimatedNumber } from "@/components/animated-number";
+import { Reveal } from "@/components/reveal";
 import { hashPhoneNumber, normalizePhoneNumber } from "@/utils/contacts";
 import { trpc } from "@/utils/trpc";
 
@@ -125,159 +126,174 @@ function ProfileRoute() {
 
 	return (
 		<div className="mx-auto w-full max-w-2xl space-y-6 py-8">
-			<div className="rounded-lg border p-6">
-				<div className="flex items-center justify-between">
-					<div>
-						<h1 className="font-semibold text-2xl">{user?.name}</h1>
-						<p className="text-muted-foreground text-sm">{user?.email}</p>
-					</div>
-					<div className="text-right">
-						<p className="font-bold text-3xl">{points ?? "…"}</p>
-						<p className="text-muted-foreground text-xs">points</p>
-					</div>
-				</div>
-				<p className="mt-3 text-muted-foreground text-sm">
-					{me.data?.friendCount ?? 0} friends
-				</p>
-			</div>
-
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-base">Contact matching</CardTitle>
-					<CardDescription>
-						Link your number so friends who have you in their contacts can find
-						you. Stored as a one-way hash.
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{hasLinkedPhone ? (
-						<div className="flex items-center justify-between">
-							<span className="inline-flex items-center rounded-full bg-green-600/10 px-2 py-0.5 font-medium text-green-600 text-xs dark:text-green-400">
-								Phone linked
-							</span>
-							<Button onClick={handleUnlink} size="sm" variant="outline">
-								Unlink
-							</Button>
+			<Reveal>
+				<div className="rounded-2xl border p-6">
+					<div className="flex items-center justify-between">
+						<div>
+							<h1 className="font-display font-extrabold text-2xl tracking-tight">
+								{user?.name}
+							</h1>
+							<p className="text-muted-foreground text-sm">{user?.email}</p>
 						</div>
-					) : (
-						<form
-							className="flex flex-col gap-3 sm:flex-row sm:items-end"
-							onSubmit={handleLinkPhone}
-						>
-							<div className="flex-1">
-								<Label htmlFor="phone">Phone number</Label>
-								<Input
-									autoComplete="tel"
-									id="phone"
-									onChange={handlePhoneChange}
-									placeholder="+1 555 000 1234"
-									type="tel"
-									value={phone}
-								/>
-							</div>
-							<Button
-								disabled={linkPhone.isPending || !phone.trim()}
-								type="submit"
-							>
-								{linkPhone.isPending ? "Linking…" : "Link"}
-							</Button>
-						</form>
-					)}
-				</CardContent>
-			</Card>
+						<div className="text-right">
+							<AnimatedNumber
+								className="font-display font-extrabold text-3xl text-primary tracking-tight"
+								value={points ?? 0}
+							/>
+							<p className="text-muted-foreground text-xs">points</p>
+						</div>
+					</div>
+					<p className="mt-3 text-muted-foreground text-sm">
+						{me.data?.friendCount ?? 0} friends
+					</p>
+				</div>
+			</Reveal>
 
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-base">Notifications</CardTitle>
-					<CardDescription>
-						Choose how DingDongDitch reaches you. Ring alerts should stay on if
-						you want to catch your friends.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-6">
-					<PrefGroup
-						onToggle={handleNotifToggle}
-						prefix="rings"
-						prefs={notifPrefs.data}
-						title="Incoming rings"
-					/>
-					<PrefGroup
-						onToggle={handleNotifToggle}
-						prefix="results"
-						prefs={notifPrefs.data}
-						title="Ring results"
-					/>
-					{notifPrefs.data?.ringsSms || notifPrefs.data?.resultsSms ? (
-						<form
-							className="flex flex-col gap-3 sm:flex-row sm:items-end"
-							onSubmit={handleSmsSubmit}
-						>
-							<div className="flex-1">
-								<Label htmlFor="sms-phone">SMS phone number</Label>
-								<Input
-									autoComplete="tel"
-									id="sms-phone"
-									onChange={handleSmsPhoneChange}
-									placeholder={notifPrefs.data?.smsPhone ?? "+15550001234"}
-									type="tel"
-									value={smsPhone}
-								/>
+			<Reveal index={1}>
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Contact matching</CardTitle>
+						<CardDescription>
+							Link your number so friends who have you in their contacts can
+							find you. Stored as a one-way hash.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						{hasLinkedPhone ? (
+							<div className="flex items-center justify-between">
+								<span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 font-medium text-success text-xs">
+									Phone linked
+								</span>
+								<Button onClick={handleUnlink} size="sm" variant="outline">
+									Unlink
+								</Button>
 							</div>
-							<Button disabled={!smsPhone.trim()} type="submit">
-								Save
-							</Button>
-						</form>
+						) : (
+							<form
+								className="flex flex-col gap-3 sm:flex-row sm:items-end"
+								onSubmit={handleLinkPhone}
+							>
+								<div className="flex-1">
+									<Label htmlFor="phone">Phone number</Label>
+									<Input
+										autoComplete="tel"
+										id="phone"
+										onChange={handlePhoneChange}
+										placeholder="+1 555 000 1234"
+										type="tel"
+										value={phone}
+									/>
+								</div>
+								<Button
+									disabled={linkPhone.isPending || !phone.trim()}
+									type="submit"
+								>
+									{linkPhone.isPending ? "Linking…" : "Link"}
+								</Button>
+							</form>
+						)}
+					</CardContent>
+				</Card>
+			</Reveal>
+
+			<Reveal index={2}>
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Notifications</CardTitle>
+						<CardDescription>
+							Choose how DingDongDitch reaches you. Ring alerts should stay on
+							if you want to catch your friends.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-6">
+						<PrefGroup
+							onToggle={handleNotifToggle}
+							prefix="rings"
+							prefs={notifPrefs.data}
+							title="Incoming rings"
+						/>
+						<PrefGroup
+							onToggle={handleNotifToggle}
+							prefix="results"
+							prefs={notifPrefs.data}
+							title="Ring results"
+						/>
+						{notifPrefs.data?.ringsSms || notifPrefs.data?.resultsSms ? (
+							<form
+								className="flex flex-col gap-3 sm:flex-row sm:items-end"
+								onSubmit={handleSmsSubmit}
+							>
+								<div className="flex-1">
+									<Label htmlFor="sms-phone">SMS phone number</Label>
+									<Input
+										autoComplete="tel"
+										id="sms-phone"
+										onChange={handleSmsPhoneChange}
+										placeholder={notifPrefs.data?.smsPhone ?? "+15550001234"}
+										type="tel"
+										value={smsPhone}
+									/>
+								</div>
+								<Button disabled={!smsPhone.trim()} type="submit">
+									Save
+								</Button>
+							</form>
+						) : null}
+					</CardContent>
+				</Card>
+			</Reveal>
+
+			<Reveal index={3}>
+				<div className="rounded-2xl border p-6">
+					<h2 className="mb-4 font-medium">Point history</h2>
+					{ledger.isLoading ? (
+						<p className="text-muted-foreground text-sm">Loading…</p>
 					) : null}
-				</CardContent>
-			</Card>
-
-			<div className="rounded-lg border p-6">
-				<h2 className="mb-4 font-medium">Point history</h2>
-				{ledger.isLoading ? (
-					<p className="text-muted-foreground text-sm">Loading…</p>
-				) : null}
-				{!ledger.isLoading && entries.length === 0 ? (
-					<p className="text-muted-foreground text-sm">No activity yet.</p>
-				) : null}
-				<ul className="divide-y">
-					{entries.map((entry) => (
-						<li
-							className="flex items-center justify-between py-2"
-							key={entry.id}
-						>
-							<div>
-								<p className="text-sm capitalize">{entry.reason}</p>
-								<p className="text-muted-foreground text-xs">
-									{new Date(entry.createdAt).toLocaleString()}
-								</p>
-							</div>
-							<p
-								className={
-									entry.amount >= 0
-										? "font-semibold text-green-600"
-										: "font-semibold text-red-600"
-								}
+					{!ledger.isLoading && entries.length === 0 ? (
+						<p className="text-muted-foreground text-sm">No activity yet.</p>
+					) : null}
+					<ul className="divide-y">
+						{entries.map((entry) => (
+							<li
+								className="flex items-center justify-between py-2"
+								key={entry.id}
 							>
-								{entry.amount >= 0 ? "+" : ""}
-								{entry.amount}
-							</p>
-						</li>
-					))}
-				</ul>
-			</div>
+								<div>
+									<p className="text-sm capitalize">{entry.reason}</p>
+									<p className="text-muted-foreground text-xs">
+										{new Date(entry.createdAt).toLocaleString()}
+									</p>
+								</div>
+								<p
+									className={
+										entry.amount >= 0
+											? "font-semibold text-success"
+											: "font-semibold text-destructive"
+									}
+								>
+									{entry.amount >= 0 ? "+" : ""}
+									{entry.amount}
+								</p>
+							</li>
+						))}
+					</ul>
+				</div>
+			</Reveal>
 
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-base">About</CardTitle>
-					<CardDescription>
-						DingDongDitch is open source under the MIT License.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="text-muted-foreground text-sm">
-					<p>Created by {APP_META.author}.</p>
-					<p className="mt-1 font-mono text-xs">{APP_META.fingerprint}</p>
-				</CardContent>
-			</Card>
+			<Reveal index={4}>
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">About</CardTitle>
+						<CardDescription>
+							DingDongDitch is open source under the MIT License.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="text-muted-foreground text-sm">
+						<p>Created by {APP_META.author}.</p>
+						<p className="mt-1 font-mono text-xs">{APP_META.fingerprint}</p>
+					</CardContent>
+				</Card>
+			</Reveal>
 		</div>
 	);
 }
@@ -346,7 +362,6 @@ function PrefGroup({
 						<Checkbox
 							checked={prefs[row.key]}
 							id={`${prefix}-${row.key}`}
-							// biome-ignore lint/performance/noJsxPropsBind: per-row pref toggle
 							onCheckedChange={(checked) => onToggle(row.key, checked === true)}
 						/>
 					</label>

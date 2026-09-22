@@ -48,10 +48,14 @@
     "postinstall": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@tanstack/charts": "^0.18.0",
     "@tanstack/react-db": "^0.4.1",
     "@tanstack/react-form": "^1.33.5",
     "@tanstack/react-table": "^9.2.4",
+    "canvas-confetti": "^1.9.4",
+    "motion": "^13.4.0",
     "zod": "catalog:"
   },
   "devDependencies": {
