@@ -1,3 +1,44 @@
 @import "tailwindcss";
 @import "uniwind";
 @import "heroui-native/styles";
+
+/* ─── DingDongDitch · "Midnight Doorstep" theme ───
+   Warm doorbell-orange accent + midnight-indigo dark surfaces.
+   Overrides HeroUI Native defaults so every semantic color
+   resolves to our playful doorstep palette. */
+@layer theme {
+	:root {
+		@variant light {
+			--accent: oklch(0.66 0.2 42);
+			--accent-foreground: oklch(0.9911 0 0);
+			--focus: var(--accent);
+			--background: oklch(0.975 0.012 90);
+			--foreground: oklch(0.25 0.04 285);
+			--surface-secondary: oklch(0.955 0.012 85);
+		}
+
+		@variant dark {
+			--accent: oklch(0.75 0.19 42);
+			--accent-foreground: oklch(0.15 0.02 285);
+			--focus: var(--accent);
+			--background: oklch(0.145 0.024 285);
+			--foreground: oklch(0.9911 0 0);
+			--surface: oklch(0.2 0.026 285);
+			--surface-foreground: var(--foreground);
+			--surface-secondary: oklch(0.235 0.02 285);
+			--surface-secondary-foreground: var(--foreground);
+			--surface-tertiary: oklch(0.27 0.02 285);
+			--surface-tertiary-foreground: var(--foreground);
+			--overlay: oklch(0.2 0.026 285);
+			--overlay-foreground: var(--foreground);
+			--field-background: oklch(0.19 0.024 285);
+			--field-foreground: var(--foreground);
+			--muted: oklch(0.72 0.015 286);
+			--default: oklch(0.3 0.02 285);
+			--default-foreground: var(--foreground);
+			--segment: oklch(0.32 0.02 285);
+			--segment-foreground: var(--foreground);
+			--border: oklch(0.34 0.02 285);
+		}
+	}
+}
