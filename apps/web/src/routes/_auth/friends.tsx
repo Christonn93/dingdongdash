@@ -403,9 +403,9 @@ function EmptyFriends({
 	return (
 		<div className="flex flex-col items-center gap-4 rounded-lg border border-dashed px-6 py-10 text-center">
 			<div className="flex -space-x-3">
-				<AppAvatar avatarId="doorbell" name="Doorbell" size="sm" />
-				<AppAvatar avatarId="house" name="House" size="sm" />
-				<AppAvatar avatarId="cat" name="Cat" size="sm" />
+				<AppAvatar avatarId="adventurer-1" name="Adventurer 1" size="sm" />
+				<AppAvatar avatarId="big-smile-1" name="Big Smile 1" size="sm" />
+				<AppAvatar avatarId="bottts-1" name="Bottts 1" size="sm" />
 			</div>
 			<div className="max-w-sm space-y-1">
 				<p className="font-medium text-foreground">
