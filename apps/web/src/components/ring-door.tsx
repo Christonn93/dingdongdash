@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from "motion/react";
+import type { Target } from "motion/react";
 import { useState } from "react";
 
 import { doorSpring } from "@/lib/motion";
@@ -99,15 +100,7 @@ interface RingSceneProps {
 	urgent: boolean;
 }
 
-interface DoorAnim {
-	opacity?: number;
-	rotateY?: number;
-	scaleX?: number;
-	x?: number;
-	y?: number;
-}
-
-function interiorGlow(open: boolean, reduceMotion: boolean): DoorAnim {
+function interiorGlow(open: boolean, reduceMotion: boolean | null): Target {
 	const opacity = open ? 1 : 0.5;
 	if (reduceMotion) {
 		return { opacity };
@@ -115,7 +108,7 @@ function interiorGlow(open: boolean, reduceMotion: boolean): DoorAnim {
 	return { opacity, scaleX: open ? 1 : 0.94 };
 }
 
-function doorSwing(open: boolean, reduceMotion: boolean): DoorAnim {
+function doorSwing(open: boolean, reduceMotion: boolean | null): Target {
 	if (reduceMotion) {
 		return { opacity: open ? 0.4 : 1 };
 	}
