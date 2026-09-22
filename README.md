@@ -1,6 +1,10 @@
 # dingdongdash
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Router, Hono, TRPC, and more.
+DingDongDash is a real-time social mobile game where you "ring the bell" on your friends and see if they can catch you before time runs out.
+
+Ring a friend and they get 30 seconds to open the app and "answer the door." Catch the ringer in time and you earn points while they lose points; miss the window and you take the penalty instead. Everyone starts at 1000 points, climbs a global and friends leaderboard, and can top up points or grab consumable boosts like time-extension shields through in-app purchases. Friends are found through phone contacts or Facebook connections who are already on the app.
+
+Built as a TypeScript monorepo with a Hono/tRPC API on Cloudflare Workers, an Expo/React Native mobile client, and a React web client sharing a common UI package — scaffolded with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack).
 
 ## Features
 

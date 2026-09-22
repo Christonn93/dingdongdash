@@ -1,192 +1,256 @@
 import { useForm } from "@tanstack/react-form";
 import {
-  Button,
-  FieldError,
-  Input,
-  Label,
-  Spinner,
-  Surface,
-  TextField,
-  useToast,
+	Button,
+	FieldError,
+	Input,
+	Label,
+	Spinner,
+	Surface,
+	TextField,
+	useToast,
 } from "heroui-native";
-import { useRef } from "react";
-import { Text, TextInput, View } from "react-native";
+import { useCallback, useRef } from "react";
+import { Pressable, Text, type TextInput, View } from "react-native";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/utils/trpc";
 
 const signUpSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").min(2, "Name must be at least 2 characters"),
-  email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
-  password: z.string().min(1, "Password is required").min(8, "Use at least 8 characters"),
+	email: z
+		.string()
+		.trim()
+		.min(1, "Email is required")
+		.email("Enter a valid email address"),
+	name: z
+		.string()
+		.trim()
+		.min(1, "Name is required")
+		.min(2, "Name must be at least 2 characters"),
+	password: z
+		.string()
+		.min(1, "Password is required")
+		.min(8, "Use at least 8 characters"),
 });
 
 function getErrorMessage(error: unknown): string | null {
-  if (!error) return null;
+	if (!error) {
+		return null;
+	}
 
-  if (typeof error === "string") {
-    return error;
-  }
+	if (typeof error === "string") {
+		return error;
+	}
 
-  if (Array.isArray(error)) {
-    for (const issue of error) {
-      const message = getErrorMessage(issue);
-      if (message) {
-        return message;
-      }
-    }
-    return null;
-  }
+	if (Array.isArray(error)) {
+		for (const issue of error) {
+			const message = getErrorMessage(issue);
+			if (message) {
+				return message;
+			}
+		}
+		return null;
+	}
 
-  if (typeof error === "object" && error !== null) {
-    const maybeError = error as { message?: unknown };
-    if (typeof maybeError.message === "string") {
-      return maybeError.message;
-    }
-  }
+	if (typeof error === "object" && error !== null) {
+		const maybeError = error as { message?: unknown };
+		if (typeof maybeError.message === "string") {
+			return maybeError.message;
+		}
+	}
 
-  return null;
+	return null;
 }
 
-export function SignUp() {
-  const emailInputRef = useRef<TextInput>(null);
-  const passwordInputRef = useRef<TextInput>(null);
-  const { toast } = useToast();
+// Stable selector reference: defined outside the component so it is never
+// recreated on render, which is what triggers noJsxPropsBind.
+function formStateSelector(state: {
+	isSubmitting: boolean;
+	errorMap: { onSubmit?: unknown };
+}) {
+	return {
+		isSubmitting: state.isSubmitting,
+		validationError: getErrorMessage(state.errorMap.onSubmit),
+	};
+}
 
-  const form = useForm({
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-    },
-    validators: {
-      onSubmit: signUpSchema,
-    },
-    onSubmit: async ({ value, formApi }) => {
-      await authClient.signUp.email(
-        {
-          name: value.name.trim(),
-          email: value.email.trim(),
-          password: value.password,
-        },
-        {
-          onError(error) {
-            toast.show({
-              variant: "danger",
-              label: error.error?.message || "Failed to sign up",
-            });
-          },
-          onSuccess() {
-            formApi.reset();
-            toast.show({
-              variant: "success",
-              label: "Account created successfully",
-            });
-            queryClient.refetchQueries();
-          },
-        },
-      );
-    },
-  });
+interface SignUpProps {
+	onSwitchToSignIn?: () => void;
+}
 
-  return (
-    <Surface variant="secondary" className="p-4 rounded-lg">
-      <Text className="text-foreground font-medium mb-4">Create Account</Text>
+export function SignUp({ onSwitchToSignIn }: SignUpProps) {
+	const emailInputRef = useRef<TextInput>(null);
+	const passwordInputRef = useRef<TextInput>(null);
+	const { toast } = useToast();
 
-      <form.Subscribe
-        selector={(state) => ({
-          isSubmitting: state.isSubmitting,
-          validationError: getErrorMessage(state.errorMap.onSubmit),
-        })}
-      >
-        {({ isSubmitting, validationError }) => {
-          const formError = validationError;
+	const form = useForm({
+		defaultValues: {
+			email: "",
+			name: "",
+			password: "",
+		},
+		onSubmit: async ({ value, formApi }) => {
+			await authClient.signUp.email(
+				{
+					email: value.email.trim(),
+					name: value.name.trim(),
+					password: value.password,
+				},
+				{
+					onError(error) {
+						toast.show({
+							label: error.error?.message || "Failed to sign up",
+							variant: "danger",
+						});
+					},
+					onSuccess() {
+						formApi.reset();
+						toast.show({
+							label: "Account created successfully",
+							variant: "success",
+						});
+						queryClient.refetchQueries();
+					},
+				}
+			);
+		},
+		validators: {
+			onSubmit: signUpSchema,
+		},
+	});
 
-          return (
-            <>
-              <FieldError isInvalid={!!formError} className="mb-3">
-                {formError}
-              </FieldError>
+	const focusEmailField = useCallback(() => {
+		emailInputRef.current?.focus();
+	}, []);
 
-              <View className="gap-3">
-                <form.Field name="name">
-                  {(field) => (
-                    <TextField>
-                      <Label>Name</Label>
-                      <Input
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChangeText={field.handleChange}
-                        placeholder="John Doe"
-                        autoComplete="name"
-                        textContentType="name"
-                        returnKeyType="next"
-                        blurOnSubmit={false}
-                        onSubmitEditing={() => {
-                          emailInputRef.current?.focus();
-                        }}
-                      />
-                    </TextField>
-                  )}
-                </form.Field>
+	const focusPasswordField = useCallback(() => {
+		passwordInputRef.current?.focus();
+	}, []);
 
-                <form.Field name="email">
-                  {(field) => (
-                    <TextField>
-                      <Label>Email</Label>
-                      <Input
-                        ref={emailInputRef}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChangeText={field.handleChange}
-                        placeholder="email@example.com"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoComplete="email"
-                        textContentType="emailAddress"
-                        returnKeyType="next"
-                        blurOnSubmit={false}
-                        onSubmitEditing={() => {
-                          passwordInputRef.current?.focus();
-                        }}
-                      />
-                    </TextField>
-                  )}
-                </form.Field>
+	const handleSubmit = useCallback(() => {
+		form.handleSubmit();
+	}, [form]);
 
-                <form.Field name="password">
-                  {(field) => (
-                    <TextField>
-                      <Label>Password</Label>
-                      <Input
-                        ref={passwordInputRef}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChangeText={field.handleChange}
-                        placeholder="••••••••"
-                        secureTextEntry
-                        autoComplete="new-password"
-                        textContentType="newPassword"
-                        returnKeyType="go"
-                        onSubmitEditing={form.handleSubmit}
-                      />
-                    </TextField>
-                  )}
-                </form.Field>
+	return (
+		<Surface className="rounded-lg p-4" variant="secondary">
+			<Text className="mb-4 font-medium text-foreground">Create Account</Text>
 
-                <Button onPress={form.handleSubmit} isDisabled={isSubmitting} className="mt-1">
-                  {isSubmitting ? (
-                    <Spinner size="sm" color="default" />
-                  ) : (
-                    <Button.Label>Create Account</Button.Label>
-                  )}
-                </Button>
-              </View>
-            </>
-          );
-        }}
-      </form.Subscribe>
-    </Surface>
-  );
+			<form.Subscribe selector={formStateSelector}>
+				{({ isSubmitting, validationError }) => {
+					const formError = validationError;
+
+					return (
+						<>
+							<FieldError className="mb-3" isInvalid={!!formError}>
+								{formError}
+							</FieldError>
+
+							<View className="gap-3">
+								<form.Field name="name">
+									{(field) => (
+										<TextField>
+											<Label>Name</Label>
+											<Input
+												autoCapitalize="words"
+												blurOnSubmit={false}
+												onBlur={field.handleBlur}
+												onChangeText={field.handleChange}
+												onSubmitEditing={focusEmailField}
+												placeholder="John Doe"
+												returnKeyType="next"
+												textContentType="name"
+												value={field.state.value}
+											/>
+											<FieldError
+												isInvalid={field.state.meta.errors.length > 0}
+											>
+												{getErrorMessage(field.state.meta.errors[0])}
+											</FieldError>
+										</TextField>
+									)}
+								</form.Field>
+
+								<form.Field name="email">
+									{(field) => (
+										<TextField>
+											<Label>Email</Label>
+											<Input
+												autoCapitalize="none"
+												autoComplete="email"
+												blurOnSubmit={false}
+												keyboardType="email-address"
+												onBlur={field.handleBlur}
+												onChangeText={field.handleChange}
+												onSubmitEditing={focusPasswordField}
+												placeholder="email@example.com"
+												ref={emailInputRef}
+												returnKeyType="next"
+												textContentType="emailAddress"
+												value={field.state.value}
+											/>
+											<FieldError
+												isInvalid={field.state.meta.errors.length > 0}
+											>
+												{getErrorMessage(field.state.meta.errors[0])}
+											</FieldError>
+										</TextField>
+									)}
+								</form.Field>
+
+								<form.Field name="password">
+									{(field) => (
+										<TextField>
+											<Label>Password</Label>
+											<Input
+												autoComplete="password"
+												onBlur={field.handleBlur}
+												onChangeText={field.handleChange}
+												onSubmitEditing={handleSubmit}
+												placeholder="Use at least 8 characters"
+												ref={passwordInputRef}
+												returnKeyType="go"
+												secureTextEntry
+												textContentType="password"
+												value={field.state.value}
+											/>
+											<FieldError
+												isInvalid={field.state.meta.errors.length > 0}
+											>
+												{getErrorMessage(field.state.meta.errors[0])}
+											</FieldError>
+										</TextField>
+									)}
+								</form.Field>
+
+								<Button
+									className="mt-1"
+									isDisabled={isSubmitting}
+									onPress={handleSubmit}
+								>
+									{isSubmitting ? (
+										<Spinner color="default" size="sm" />
+									) : (
+										<Button.Label>Create Account</Button.Label>
+									)}
+								</Button>
+
+								{onSwitchToSignIn ? (
+									<View className="mt-4 flex-row justify-center">
+										<Text className="text-foreground">
+											Already have an account?{" "}
+										</Text>
+										<Pressable onPress={onSwitchToSignIn}>
+											<Text className="font-semibold text-foreground">
+												Sign In
+											</Text>
+										</Pressable>
+									</View>
+								) : null}
+							</View>
+						</>
+					);
+				}}
+			</form.Subscribe>
+		</Surface>
+	);
 }

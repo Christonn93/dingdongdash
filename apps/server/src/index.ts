@@ -12,29 +12,27 @@ const app = new Hono();
 
 app.use(logger());
 app.use(
-  "/*",
-  cors({
-    origin: [ENV.CORS_ORIGIN, ...desktopOrigins],
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  }),
+	"/*",
+	cors({
+		allowHeaders: ["Content-Type", "Authorization"],
+		allowMethods: ["GET", "POST", "OPTIONS"],
+		credentials: true,
+		origin: [ENV.CORS_ORIGIN, ...desktopOrigins],
+	})
 );
 
-app.on(["POST", "GET"], "/api/auth/*", async (c) => (await createAuth()).handler(c.req.raw));
+app.on(["POST", "GET"], "/api/auth/*", async (c) =>
+	(await createAuth()).handler(c.req.raw)
+);
 
 app.use(
-  "/trpc/*",
-  trpcServer({
-    router: appRouter,
-    createContext: (_opts, context) => {
-      return createContext({ context });
-    },
-  }),
+	"/trpc/*",
+	trpcServer({
+		createContext: (_opts, context) => createContext({ context }),
+		router: appRouter,
+	})
 );
 
-app.get("/", (c) => {
-  return c.text("OK");
-});
+app.get("/", (c) => c.text("OK"));
 
 export default app;

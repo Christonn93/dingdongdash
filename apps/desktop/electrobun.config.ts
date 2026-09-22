@@ -3,34 +3,34 @@ import type { ElectrobunConfig } from "electrobun";
 const webBuildDir = "../web/dist";
 
 export default {
-  app: {
-    name: "dingdongdash",
-    identifier: "dev.bettertstack.dingdongdash.desktop",
-    version: "0.0.1",
-  },
-  runtime: {
-    exitOnLastWindowClosed: true,
-  },
-  build: {
-    mainProcess: "cottontail",
-    cottontail: {
-      entrypoint: "src/bun/index.ts",
-    },
-    copy: {
-      [webBuildDir]: "views/mainview",
-    },
-    watchIgnore: [`${webBuildDir}/**`],
-    mac: {
-      bundleCEF: true,
-      defaultRenderer: "cef",
-    },
-    linux: {
-      bundleCEF: true,
-      defaultRenderer: "cef",
-    },
-    win: {
-      bundleCEF: true,
-      defaultRenderer: "cef",
-    },
-  },
+	app: {
+		identifier: "dev.bettertstack.dingdongdash.desktop",
+		name: "dingdongdash",
+		version: "0.0.1",
+	},
+	build: {
+		copy: {
+			[webBuildDir]: "views/mainview",
+		},
+		cottontail: {
+			entrypoint: "src/bun/index.ts",
+		},
+		linux: {
+			bundleCEF: true,
+			defaultRenderer: "cef",
+		},
+		mac: {
+			bundleCEF: true,
+			defaultRenderer: "cef",
+		},
+		mainProcess: "cottontail",
+		watchIgnore: [`${webBuildDir}/**`],
+		win: {
+			bundleCEF: true,
+			defaultRenderer: "cef",
+		},
+	},
+	runtime: {
+		exitOnLastWindowClosed: true,
+	},
 } satisfies ElectrobunConfig;

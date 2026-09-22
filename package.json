@@ -1,6 +1,7 @@
 {
   "name": "dingdongdash",
   "private": true,
+  "type": "module",
   "workspaces": {
     "packages": [
       "apps/*",
@@ -26,26 +27,29 @@
       "drizzle-orm": "1.0.0-rc.4"
     }
   },
-  "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
     "build": "turbo run build --filter='!desktop' && turbo run build -F desktop",
-    "check-types": "turbo run check-types",
-    "dev:native": "turbo run dev -F native --",
-    "dev:web": "turbo run dev:bare -F web --",
-    "dev:desktop": "turbo run dev:hmr -F desktop --",
     "build:desktop": "turbo run build:stable -F desktop --",
     "build:desktop:canary": "turbo run build:canary -F desktop --",
-    "dev:server": "turbo run dev:bare -F hono --",
+    "check": "ultracite check",
+    "check-types": "turbo run check-types",
     "db:generate": "turbo run db:generate -F @dingdongdash/db --",
     "deploy": "turbo run deploy -F @dingdongdash/infra --",
     "destroy": "turbo run destroy -F @dingdongdash/infra --",
+    "dev": "turbo run dev",
+    "dev:desktop": "turbo run dev:hmr -F desktop --",
+    "dev:native": "turbo run dev -F native --",
+    "dev:server": "turbo run dev:bare -F hono --",
+    "dev:web": "turbo run dev:bare -F web --",
     "env:generate": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/",
-    "postinstall": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/",
-    "check": "ultracite check",
-    "fix": "ultracite fix"
+    "fix": "ultracite fix",
+    "postinstall": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./apps/native/ && varlock codegen --path ./packages/db/"
   },
   "dependencies": {
+    "@tanstack/charts": "^0.18.0",
+    "@tanstack/react-db": "^0.4.1",
+    "@tanstack/react-form": "^1.33.5",
+    "@tanstack/react-table": "^9.2.4",
     "zod": "catalog:"
   },
   "devDependencies": {
