@@ -3,31 +3,51 @@ export interface AuthEmailEnv {
 	RESEND_API_KEY: string;
 }
 
-/** Sends a transactional email via Resend. No-op when credentials are absent. */
+const DUMMY_KEYS = new Set(["re_dummy_key", "re_test_key", "re_placeholder"]);
+
+/**
+ * Resend requires a sender that exists on a verified domain. The project's
+ * placeholder uses @example.com, which can never be verified — fall back to
+ * Resend's shared test domain so a real API key alone is enough to send.
+ */
+function resolveFrom(emailFrom: string): string {
+	const configured = emailFrom.trim();
+	if (configured && !configured.includes("@example.com")) {
+		return configured;
+	}
+	return "DingDongDitch <onboarding@resend.dev>";
+}
+
+export type EmailSendStatus = "sent" | "skipped" | "error";
+
+/** Sends a transactional email via Resend. Returns the outcome instead of
+ * swallowing failures so callers can surface problems to the user. */
 export async function sendAuthEmail(
 	env: AuthEmailEnv,
 	to: string,
 	subject: string,
 	html: string
-): Promise<void> {
-	if (!(env.RESEND_API_KEY && env.EMAIL_FROM)) {
-		return;
+): Promise<EmailSendStatus> {
+	const key = env.RESEND_API_KEY.trim();
+	if (!key || DUMMY_KEYS.has(key)) {
+		return "skipped";
 	}
 	try {
-		await fetch("https://api.resend.com/emails", {
+		const response = await fetch("https://api.resend.com/emails", {
 			body: JSON.stringify({
-				from: env.EMAIL_FROM,
+				from: resolveFrom(env.EMAIL_FROM),
 				html,
 				subject,
 				to: [to],
 			}),
 			headers: {
-				authorization: `Bearer ${env.RESEND_API_KEY}`,
+				authorization: `Bearer ${key}`,
 				"content-type": "application/json",
 			},
 			method: "POST",
 		});
+		return response.ok ? "sent" : "error";
 	} catch {
-		// Never break sign-up/sign-in when the email provider is unavailable.
+		return "error";
 	}
 }

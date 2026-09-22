@@ -19,6 +19,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
+			className="h-full w-full min-w-0"
 			initial={{ opacity: 0, y: 10 }}
 			key={pathname}
 			transition={fadeUp}

@@ -31,9 +31,9 @@ function NavLinks() {
 
 export default function Header() {
 	return (
-		<header className="sticky top-0 z-50 border-border/60 border-b bg-background/80 backdrop-blur-md">
+		<header className="sticky top-0 z-50 w-full min-w-0 overflow-x-clip border-border/60 border-b bg-background/80 backdrop-blur-md">
 			<div className="mx-auto w-full max-w-6xl">
-				<div className="flex h-14 items-center justify-between gap-2 px-3 sm:px-4">
+				<div className="flex h-14 min-w-0 items-center justify-between gap-2 px-3 sm:px-4">
 					<div className="flex min-w-0 items-center gap-2">
 						<Link
 							className="flex shrink-0 items-center gap-2 rounded-xl font-display font-extrabold text-sm tracking-tight"

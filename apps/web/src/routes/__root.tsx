@@ -89,7 +89,7 @@ function Shell() {
 	}
 
 	return (
-		<div className="grid h-svh grid-rows-[auto_1fr]">
+		<div className="grid h-svh w-full grid-cols-1 grid-rows-[auto_1fr] overflow-x-clip">
 			<Header />
 			<PageTransition>
 				<Outlet />
