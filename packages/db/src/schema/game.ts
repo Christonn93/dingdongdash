@@ -27,7 +27,7 @@ export const ledgerReason = [
 	"purchase",
 	"adjustment",
 ] as const;
-export const devicePlatform = ["ios", "android"] as const;
+export const devicePlatform = ["ios", "android", "web"] as const;
 export const purchaseItem = ["time_shield", "points_pack", "cosmetic"] as const;
 
 export const deviceToken = sqliteTable(

@@ -1,14 +1,52 @@
-import type { Database } from "@dingdongdash/db";
-import { purchase, user } from "@dingdongdash/db/schema";
+import { purchase } from "@dingdongdash/db/schema";
 import { TRPCError } from "@trpc/server";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import z from "zod";
 
 import { protectedProcedure, publicProcedure, router } from "../index";
 import { lookupProduct } from "../lib/catalog";
-import { applyPoints } from "../lib/points";
+import { createPolarCheckout, parsePolarProductIds } from "../lib/polar";
+import { grantPurchase } from "../lib/purchase-grant";
 
 export const purchasesRouter = router({
+	/** Starts a hosted Polar checkout for the web app and returns the URL. */
+	createCheckout: protectedProcedure
+		.input(z.object({ productId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const product = lookupProduct(input.productId);
+			if (!product) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Unknown product",
+				});
+			}
+			if (!ctx.polarAccessToken) {
+				throw new TRPCError({
+					code: "NOT_IMPLEMENTED",
+					message: "Payments are not configured yet.",
+				});
+			}
+			const polarProductId = parsePolarProductIds(ctx.polarProductIds)[
+				input.productId
+			];
+			if (!polarProductId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This product isn't available for checkout yet.",
+				});
+			}
+			const { url } = await createPolarCheckout({
+				accessToken: ctx.polarAccessToken,
+				customerEmail: ctx.session.user.email,
+				metadata: {
+					productId: input.productId,
+					userId: ctx.session.user.id,
+				},
+				productId: polarProductId,
+				successUrl: `${ctx.publicWebUrl}/store?purchased=1`,
+			});
+			return { url };
+		}),
 	getCatalog: publicProcedure.query(() => ({ items: catalogItems() })),
 
 	getHistory: protectedProcedure.query(({ ctx }) => {
@@ -108,51 +146,4 @@ function validatePlatformReceipt(): {
 	reason?: string;
 } {
 	return { valid: true };
-}
-
-async function grantPurchase(
-	db: Database,
-	userId: string,
-	input: {
-		platform: "ios" | "android";
-		productId: string;
-		platformTransactionId: string;
-	},
-	product: NonNullable<ReturnType<typeof lookupProduct>>
-): Promise<void> {
-	const pointsGranted = product.kind === "points_pack" ? product.points : 0;
-	let itemGranted: "time_shield" | "points_pack" | "cosmetic" = "points_pack";
-	if (product.kind === "time_shield") {
-		itemGranted = "time_shield";
-	} else if (product.kind === "cosmetic") {
-		itemGranted = "cosmetic";
-	}
-
-	const purchaseRow = {
-		amountPaidCents: product.priceCents,
-		currency: product.currency,
-		id: crypto.randomUUID(),
-		itemGranted,
-		platform: input.platform,
-		platformTransactionId: input.platformTransactionId,
-		pointsGranted: pointsGranted || null,
-		productId: input.productId,
-		userId,
-	};
-
-	if (itemGranted === "time_shield") {
-		await db.batch([
-			db.insert(purchase).values(purchaseRow),
-			db
-				.update(user)
-				.set({ timeShields: sql`${user.timeShields} + 3` })
-				.where(eq(user.id, userId)),
-		]);
-	} else {
-		await db.insert(purchase).values(purchaseRow);
-	}
-
-	if (pointsGranted > 0) {
-		await applyPoints(db, userId, pointsGranted, "purchase");
-	}
 }

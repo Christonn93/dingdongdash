@@ -22,15 +22,10 @@ function StoreRoute() {
 	const catalog = useQuery(trpc.purchases.getCatalog.queryOptions());
 	const inventory = useQuery(trpc.users.getInventory.queryOptions());
 
-	const purchase = useMutation(
-		trpc.purchases.validateReceipt.mutationOptions({
+	const checkout = useMutation(
+		trpc.purchases.createCheckout.mutationOptions({
 			onSuccess: (result) => {
-				toast.success(
-					result.alreadyProcessed
-						? "Purchase already processed"
-						: "Purchase granted!"
-				);
-				inventory.refetch();
+				window.location.assign(result.url);
 			},
 			onError: (error) => toast.error(error.message),
 		})
@@ -48,16 +43,9 @@ function StoreRoute() {
 
 	const handleBuy = useCallback(
 		(productId: string) => {
-			// Development purchase: real store receipts are wired via IAP in the
-			// native app; this lets the server flow be exercised end-to-end.
-			purchase.mutate({
-				platform: "ios",
-				productId,
-				platformTransactionId: crypto.randomUUID(),
-				receiptData: "dev-receipt",
-			});
+			checkout.mutate({ productId });
 		},
-		[purchase]
+		[checkout]
 	);
 
 	const handleArmShield = useCallback(() => {
@@ -131,10 +119,10 @@ function StoreRoute() {
 								</span>
 								<Button
 									className="rounded-full"
-									disabled={purchase.isPending}
+									disabled={checkout.isPending}
 									onClick={() => handleBuy(item.productId)}
 								>
-									Buy
+									{checkout.isPending ? "Opening checkout…" : "Buy"}
 								</Button>
 							</CardContent>
 						</Card>
@@ -143,8 +131,8 @@ function StoreRoute() {
 			</div>
 
 			<p className="mt-6 text-muted-foreground text-xs">
-				In the production app, purchases go through Apple App Store / Google
-				Play billing and are validated server-side before points are granted.
+				Payments are handled securely by Polar. On iOS and Android, purchases go
+				through the Apple App Store / Google Play billing instead.
 			</p>
 		</div>
 	);

@@ -6,6 +6,9 @@ export type Context = {
 	db: Database;
 	emailFrom: string;
 	expoAccessToken: string;
+	polarAccessToken: string;
+	polarProductIds: string;
+	polarWebhookSecret: string;
 	publicWebUrl: string;
 	resendApiKey: string;
 	session: Session | null;

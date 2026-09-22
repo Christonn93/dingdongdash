@@ -1,11 +1,5 @@
 import { Button } from "@dingdongdash/ui/components/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@dingdongdash/ui/components/card";
+import { Card } from "@dingdongdash/ui/components/card";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "motion/react";
@@ -126,7 +120,8 @@ function IdleDoor() {
 
 	return (
 		<Card className="overflow-hidden border-none">
-			<div className="relative flex flex-col items-center overflow-hidden rounded-2xl">
+			<div className="relative overflow-hidden rounded-2xl">
+				{/* Dusk backdrop */}
 				<div
 					aria-hidden="true"
 					className="absolute inset-0"
@@ -135,25 +130,27 @@ function IdleDoor() {
 							"linear-gradient(180deg, #171233 0%, #2b2350 50%, #6b4059 75%, #b9644c 100%)",
 					}}
 				/>
+				{/* Decorative moon — never overlaps the text (content starts below it) */}
 				<div
 					aria-hidden="true"
-					className="absolute top-[10%] right-[14%] h-9 w-9 rounded-full bg-amber-50 opacity-90 shadow-[0_0_26px_10px_rgba(255,236,179,0.35)]"
+					className="pointer-events-none absolute top-4 right-4 h-8 w-8 rounded-full bg-amber-50 opacity-80 shadow-[0_0_26px_10px_rgba(255,236,179,0.35)]"
 				/>
 
-				<div className="relative z-10 flex w-full flex-col items-center px-6 py-10">
-					<CardHeader className="items-center text-center">
-						<CardTitle className="font-bold font-display text-amber-50 text-base">
+				{/* Content */}
+				<div className="relative z-10 flex flex-col items-center gap-6 px-6 pt-14 pb-10">
+					<div className="w-full max-w-sm space-y-2 text-center">
+						<h3 className="font-bold font-display text-amber-50 text-lg leading-snug">
 							No one's at the door right now
-						</CardTitle>
-						<CardDescription className="text-amber-100/75">
+						</h3>
+						<p className="text-amber-100/80 text-sm leading-relaxed">
 							Give it a tap — the bell's for practice until a friend rings you.
-						</CardDescription>
-					</CardHeader>
+						</p>
+					</div>
 
 					<motion.button
 						animate={pings > 0 ? { scale: [1, 0.82, 1.06, 1] } : undefined}
 						aria-label="Ring the practice doorbell"
-						className="relative mt-2 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-[#3a2a1a] border-[4px] bg-gradient-to-br from-amber-200 to-amber-400 shadow-[0_4px_14px_rgba(0,0,0,0.45),0_0_22px_rgba(255,200,120,0.85)]"
+						className="relative flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full border-[#3a2a1a] border-[4px] bg-gradient-to-br from-amber-200 to-amber-400 shadow-[0_4px_14px_rgba(0,0,0,0.45),0_0_22px_rgba(255,200,120,0.85)]"
 						key={pings}
 						onClick={handlePress}
 						style={{ transformOrigin: "center" }}
@@ -176,13 +173,11 @@ function IdleDoor() {
 						)}
 					</motion.button>
 
-					<CardContent className="pt-6">
-						<Link to="/friends">
-							<Button className="rounded-full px-6" size="lg">
-								Ring a friend
-							</Button>
-						</Link>
-					</CardContent>
+					<Link to="/friends">
+						<Button className="rounded-full px-6" size="lg">
+							Ring a friend
+						</Button>
+					</Link>
 				</div>
 			</div>
 		</Card>

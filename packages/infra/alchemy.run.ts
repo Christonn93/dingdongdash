@@ -24,6 +24,15 @@ export const server = Cloudflare.Worker("server", {
 		EXPO_ACCESS_TOKEN: Config.String("EXPO_ACCESS_TOKEN").pipe(
 			Config.withDefault("")
 		),
+		POLAR_ACCESS_TOKEN: Config.String("POLAR_ACCESS_TOKEN").pipe(
+			Config.withDefault("")
+		),
+		POLAR_PRODUCT_IDS: Config.String("POLAR_PRODUCT_IDS").pipe(
+			Config.withDefault("")
+		),
+		POLAR_WEBHOOK_SECRET: Config.String("POLAR_WEBHOOK_SECRET").pipe(
+			Config.withDefault("")
+		),
 		PUBLIC_WEB_URL: Config.String("PUBLIC_WEB_URL").pipe(
 			Config.withDefault("http://localhost:3001")
 		),
