@@ -96,13 +96,15 @@ export default function Dashboard() {
 				if (!result.granted) {
 					return;
 				}
-				playSound("fanfare");
+				playSound(result.milestone ? "fanfare" : "chime");
 				setBurstId((n) => n + 1);
 				setBonusDismissed(true);
 				me.refetch();
 				dailyBonus.refetch();
 				toast.show({
-					label: `Daily bonus claimed! +${result.points} points`,
+					label: result.milestone
+						? `🔥 ${result.streak}-day streak! +${result.points} points`
+						: `Daily bonus claimed! +${result.points} points`,
 					variant: "success",
 				});
 			},
@@ -176,6 +178,7 @@ export default function Dashboard() {
 						onClaim={() => claimBonus.mutate()}
 						onDismiss={() => setBonusDismissed(true)}
 						points={dailyBonus.data.points}
+						streak={dailyBonus.data.streak}
 					/>
 				) : null}
 

@@ -2,6 +2,7 @@
 /// <reference path="../cloudflare-env.d.ts" />
 // For Cloudflare Workers, env is accessed via cloudflare:workers module
 // Types are defined in env.d.ts based on your alchemy.run.ts bindings
+// biome-ignore lint/performance/noBarrelFile: single required re-export of the workers env
 export { env as ENV } from "cloudflare:workers";
 
 /** Packaged desktop builds serve the frontend from their own origin, not CORS_ORIGIN. */

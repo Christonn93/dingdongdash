@@ -8,7 +8,7 @@ import { Platform } from "react-native";
  * plays on native; on web it's a silent no-op.
  */
 
-type SoundName = "chime" | "fanfare" | "downer" | "blip" | "creak";
+type SoundName = "chime" | "fanfare" | "downer" | "blip" | "creak" | "shield";
 
 interface AudioPlayerLike {
 	play: () => void;
@@ -32,6 +32,7 @@ const SOURCES: Record<SoundName, number> = {
 	creak: require("@/assets/audio/creak.wav"),
 	downer: require("@/assets/audio/downer.wav"),
 	fanfare: require("@/assets/audio/fanfare.wav"),
+	shield: require("@/assets/audio/shield.wav"),
 };
 
 const VOLUMES: Record<SoundName, number> = {
@@ -40,6 +41,7 @@ const VOLUMES: Record<SoundName, number> = {
 	creak: 0.7,
 	downer: 0.85,
 	fanfare: 1,
+	shield: 0.95,
 };
 
 let api: AudioApi | null | undefined;

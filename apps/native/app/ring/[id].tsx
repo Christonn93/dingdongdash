@@ -104,13 +104,14 @@ export default function RingScreen() {
 	const countdownFraction = ring
 		? Math.max(0, Math.min(1, remainingMs / ring.durationMs))
 		: 1;
+	const shielded = (ring?.durationMs ?? 0) > 30_000;
 
 	useEffect(() => {
 		if (phase === "checking" && active.data && ring) {
 			setPhase("ringing");
-			playSound("chime");
+			playSound(shielded ? "shield" : "chime");
 		}
-	}, [active.data, phase, ring]);
+	}, [active.data, phase, ring, shielded]);
 
 	const lastTick = useRef(secondsLeft);
 	useEffect(() => {
@@ -170,6 +171,7 @@ export default function RingScreen() {
 						name={name}
 						onOpen={handleOpenDoor}
 						secondsLeft={secondsLeft}
+						shielded={shielded}
 					/>
 				) : null}
 				{phase === "caught" || phase === "ditched" ? (
@@ -249,6 +251,7 @@ function RingingView({
 	secondsLeft,
 	countdownFraction,
 	disabled,
+	shielded,
 	onOpen,
 }: {
 	colors: SceneColors;
@@ -256,6 +259,7 @@ function RingingView({
 	secondsLeft: number;
 	countdownFraction: number;
 	disabled: boolean;
+	shielded: boolean;
 	onOpen: () => void;
 }) {
 	return (
@@ -264,6 +268,30 @@ function RingingView({
 			entering={FadeInUp.springify().damping(15)}
 		>
 			{secondsLeft <= 5 ? <HeartbeatOverlay /> : null}
+
+			{shielded ? (
+				<View
+					style={{
+						alignItems: "center",
+						alignSelf: "center",
+						backgroundColor: "rgba(249,115,22,0.14)",
+						borderRadius: 999,
+						flexDirection: "row",
+						gap: 6,
+						marginBottom: 10,
+						paddingHorizontal: 12,
+						paddingVertical: 5,
+					}}
+				>
+					<Text style={{ fontSize: 14 }}>🛡️</Text>
+					<Text
+						className="font-bold text-xs"
+						style={{ color: colors.foreground }}
+					>
+						Time Shield ring — extra time!
+					</Text>
+				</View>
+			) : null}
 
 			<View className="mb-2 items-center">
 				<Animated.Text

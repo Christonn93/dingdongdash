@@ -14,14 +14,21 @@ interface DailyBonusCardProps {
 	onClaim: () => void;
 	onDismiss: () => void;
 	points: number;
+	streak: number;
 }
+
+const MILESTONE_EVERY = 7;
 
 export function DailyBonusCard({
 	claiming,
 	onClaim,
 	onDismiss,
 	points,
+	streak,
 }: DailyBonusCardProps) {
+	const hitsMilestoneTomorrow =
+		streak > 0 && (streak + 1) % MILESTONE_EVERY === 0;
+
 	return (
 		<Animated.View
 			entering={FadeInDown.springify().damping(16)}
@@ -52,14 +59,35 @@ export function DailyBonusCard({
 						<Text style={{ fontSize: 22 }}>🎁</Text>
 					</View>
 					<View className="flex-1">
-						<Text className="font-black text-lg" style={{ color: "#5c4303" }}>
-							Daily bonus ready!
-						</Text>
+						<View className="flex-row items-center gap-2">
+							<Text className="font-black text-lg" style={{ color: "#5c4303" }}>
+								Daily bonus ready!
+							</Text>
+							{streak >= 1 ? (
+								<View
+									style={{
+										backgroundColor: "rgba(255,255,255,0.45)",
+										borderRadius: 999,
+										paddingHorizontal: 8,
+										paddingVertical: 2,
+									}}
+								>
+									<Text
+										className="font-black text-xs"
+										style={{ color: "#7a5a08" }}
+									>
+										🔥 {streak}-day streak
+									</Text>
+								</View>
+							) : null}
+						</View>
 						<Text
 							className="font-semibold text-xs"
 							style={{ color: "#7a5a08" }}
 						>
-							Step inside for +{points} points. New one every day.
+							{hitsMilestoneTomorrow
+								? `Claim today to hit the ${MILESTONE_EVERY}-day milestone (+${points + 50} total)!`
+								: `Step inside for +${points} points. New one every day.`}
 						</Text>
 					</View>
 					<Pressable

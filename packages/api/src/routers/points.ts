@@ -64,7 +64,7 @@ function runEndingAt(dates: string[], endKey: string): number {
 /** Login streak that is still alive (last claim is today or yesterday), else 0. */
 function aliveStreak(dates: string[]): number {
 	const unique = [...new Set(dates)].sort().reverse();
-	const last = unique[0];
+	const [last] = unique;
 	if (!last) {
 		return 0;
 	}
