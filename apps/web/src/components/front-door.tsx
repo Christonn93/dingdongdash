@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from "motion/react";
+import type { Target } from "motion/react";
 import { useState } from "react";
 
 import { doorSpring, spring } from "@/lib/motion";
@@ -121,15 +122,7 @@ interface PorchProps {
 	ping: number;
 }
 
-interface DoorAnim {
-	opacity?: number;
-	rotateY?: number;
-	scaleX?: number;
-	x?: number;
-	y?: number;
-}
-
-function interiorGlow(open: boolean, reduceMotion: boolean): DoorAnim {
+function interiorGlow(open: boolean, reduceMotion: boolean | null): Target {
 	const opacity = open ? 1 : 0.55;
 	if (reduceMotion) {
 		return { opacity };
@@ -137,14 +130,14 @@ function interiorGlow(open: boolean, reduceMotion: boolean): DoorAnim {
 	return { opacity, scaleX: open ? 1 : 0.94 };
 }
 
-function doorSwing(open: boolean, reduceMotion: boolean): DoorAnim {
+function doorSwing(open: boolean, reduceMotion: boolean | null): Target {
 	if (reduceMotion) {
 		return { opacity: open ? 0.4 : 1 };
 	}
 	return { rotateY: open ? -74 : 0, x: open ? -6 : 0 };
 }
 
-function doormatShift(open: boolean, reduceMotion: boolean): DoorAnim {
+function doormatShift(open: boolean, reduceMotion: boolean | null): Target {
 	if (reduceMotion) {
 		return { opacity: open ? 0.5 : 1 };
 	}
