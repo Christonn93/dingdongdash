@@ -140,12 +140,16 @@ export default function ShopScreen() {
 					<View className="items-center py-12">
 						<Spinner size="lg" />
 					</View>
-				) : catalog.isError ? (
+				) : null}
+
+				{catalog.isError ? (
 					<ErrorState
 						message="We couldn't load the shop catalog."
 						onRetry={() => catalog.refetch()}
 					/>
-				) : (
+				) : null}
+
+				{catalog.isLoading || catalog.isError ? null : (
 					<View className="gap-3">
 						{items.map((item) => {
 							const isPoints = item.kind === "points_pack";

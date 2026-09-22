@@ -3,6 +3,7 @@ import { Input } from "@dingdongdash/ui/components/input";
 import { Label } from "@dingdongdash/ui/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -19,6 +20,28 @@ export default function SignInForm({
 		from: "/",
 	});
 	const { isPending } = authClient.useSession();
+	const [needsVerification, setNeedsVerification] = useState<string | null>(null);
+	const [resending, setResending] = useState(false);
+
+	const handleResend = useCallback(async () => {
+		if (!needsVerification) {
+			return;
+		}
+		setResending(true);
+		try {
+			const { error } = await authClient.sendVerificationEmail({
+				callbackURL: `${window.location.origin}/verify-email`,
+				email: needsVerification,
+			});
+			if (error) {
+				toast.error(error.message ?? "Could not resend verification email");
+			} else {
+				toast.success("Verification email sent — check your inbox");
+			}
+		} finally {
+			setResending(false);
+		}
+	}, [needsVerification]);
 
 	const form = useForm({
 		defaultValues: {
@@ -33,7 +56,11 @@ export default function SignInForm({
 				},
 				{
 					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
+						const message = error.error.message ?? error.error.statusText;
+						toast.error(message);
+						if (message.toLowerCase().includes("verif")) {
+							setNeedsVerification(value.email);
+						}
 					},
 					onSuccess: () => {
 						navigate({
@@ -58,6 +85,24 @@ export default function SignInForm({
 
 	return (
 		<div className="space-y-4">
+			{needsVerification && (
+				<div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+					<p className="text-muted-foreground">
+						You need to verify your email before signing in. We can resend the
+						link to{" "}
+						<span className="font-medium text-foreground">{needsVerification}</span>
+						.
+					</p>
+					<Button
+						className="mt-2 rounded-full"
+						disabled={resending}
+						onClick={handleResend}
+						size="sm"
+					>
+						{resending ? "Sending…" : "Resend verification email"}
+					</Button>
+				</div>
+			)}
 			<form
 				className="space-y-4"
 				onSubmit={(e) => {

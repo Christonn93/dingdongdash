@@ -3,6 +3,7 @@ import { Input } from "@dingdongdash/ui/components/input";
 import { Label } from "@dingdongdash/ui/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -19,6 +20,7 @@ export default function SignUpForm({
 		from: "/",
 	});
 	const { isPending } = authClient.useSession();
+	const [verificationSent, setVerificationSent] = useState(false);
 
 	const form = useForm({
 		defaultValues: {
@@ -29,6 +31,7 @@ export default function SignUpForm({
 		onSubmit: async ({ value }) => {
 			await authClient.signUp.email(
 				{
+					callbackURL: `${window.location.origin}/verify-email`,
 					email: value.email,
 					name: value.name,
 					password: value.password,
@@ -37,7 +40,11 @@ export default function SignUpForm({
 					onError: (error) => {
 						toast.error(error.error.message || error.error.statusText);
 					},
-					onSuccess: () => {
+					onSuccess: ({ data }) => {
+						if (!data?.user?.emailVerified) {
+							setVerificationSent(true);
+							return;
+						}
 						navigate({
 							to: "/dashboard",
 						});
@@ -57,6 +64,47 @@ export default function SignUpForm({
 
 	if (isPending) {
 		return <Loader />;
+	}
+
+	if (verificationSent) {
+		return (
+			<div className="flex flex-col items-center gap-4 py-4 text-center">
+				<span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+					<svg
+						aria-hidden="true"
+						className="h-6 w-6"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						viewBox="0 0 24 24"
+					>
+						<title>Mail sent</title>
+						<path
+							d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						/>
+					</svg>
+				</span>
+				<h3 className="font-display text-lg font-extrabold tracking-tight">
+					Check your inbox
+				</h3>
+				<p className="text-sm text-muted-foreground">
+					We sent a verification link to{" "}
+					<span className="font-medium text-foreground">
+						{form.state.values.email}
+					</span>
+					. Click it to verify your email, then sign in.
+				</p>
+				<Button
+					className="mt-2 rounded-full"
+					onClick={onSwitchToSignIn}
+					variant="outline"
+				>
+					Go to sign in
+				</Button>
+			</div>
+		);
 	}
 
 	return (

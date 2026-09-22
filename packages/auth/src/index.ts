@@ -11,6 +11,8 @@ import {
 import { pointsLedger } from "@dingdongdash/db/schema/game";
 import { betterAuth } from "better-auth";
 
+import { sendAuthEmail } from "./email";
+
 const authSchema = { account, session, user, verification };
 
 function parseOriginList(value: string): string[] {
@@ -24,6 +26,8 @@ export interface AuthConfig {
 	BETTER_AUTH_SECRET: string;
 	BETTER_AUTH_URL: string;
 	CORS_ORIGIN: string;
+	EMAIL_FROM: string;
+	RESEND_API_KEY: string;
 }
 
 export function createAuth(
@@ -58,7 +62,30 @@ export function createAuth(
 				},
 			},
 		},
-		emailAndPassword: { enabled: true },
+		emailAndPassword: {
+			enabled: true,
+			requireEmailVerification: true,
+			sendResetPassword: async ({ user, url }) => {
+				await sendAuthEmail(
+					env,
+					user.email,
+					"Reset your DingDongDitch password",
+					`<p>Click the link below to reset your password. It expires in one hour.</p><p><a href="${url}">Reset my password</a></p>`
+				);
+			},
+		},
+		emailVerification: {
+			autoSignInAfterVerification: true,
+			sendOnSignUp: true,
+			sendVerificationEmail: async ({ user, url }) => {
+				await sendAuthEmail(
+					env,
+					user.email,
+					"Verify your DingDongDitch email",
+					`<p>Almost there! Confirm your email to start ringing doorbells.</p><p><a href="${url}">Verify my email</a></p>`
+				);
+			},
+		},
 		plugins: [expo()],
 		secret: env.BETTER_AUTH_SECRET,
 		trustedOrigins: [
