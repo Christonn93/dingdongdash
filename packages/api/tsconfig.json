@@ -1,0 +1,7 @@
+{
+  "extends": "@dingdongdash/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "strictNullChecks": true
+  }
+}
