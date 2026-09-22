@@ -132,8 +132,12 @@ export function ConfettiBurst() {
 
 	return (
 		<View
-			pointerEvents="none"
-			style={{ alignItems: "center", inset: 0, position: "absolute" }}
+			style={{
+				alignItems: "center",
+				inset: 0,
+				pointerEvents: "none",
+				position: "absolute",
+			}}
 		>
 			{pieces.map((piece) => (
 				<ConfettiPiece key={piece.id} piece={piece} />

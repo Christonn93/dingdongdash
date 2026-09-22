@@ -119,8 +119,12 @@ export function Fireflies() {
 
 	return (
 		<View
-			pointerEvents="none"
-			style={{ inset: 0, overflow: "hidden", position: "absolute" }}
+			style={{
+				inset: 0,
+				overflow: "hidden",
+				pointerEvents: "none",
+				position: "absolute",
+			}}
 		>
 			{flies.map((fly) => (
 				<Firefly fly={fly} key={fly.id} />

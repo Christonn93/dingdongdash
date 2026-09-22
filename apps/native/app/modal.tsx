@@ -23,6 +23,14 @@ function AddFriendModal() {
 	const muted = useThemeColor("muted");
 	const background = useThemeColor("background");
 
+	const goBack = useCallback(() => {
+		if (router.canGoBack()) {
+			router.back();
+		} else {
+			router.replace("/");
+		}
+	}, []);
+
 	const inviteMutation = useMutation(
 		trpc.friends.createInvite.mutationOptions()
 	);
@@ -33,7 +41,7 @@ function AddFriendModal() {
 			},
 			onSuccess: () => {
 				toast.show({ label: "Contacts synced", variant: "success" });
-				router.back();
+				goBack();
 			},
 		})
 	);
@@ -46,7 +54,7 @@ function AddFriendModal() {
 				title: "Join me on DingDongDitch",
 				url: invite.url,
 			});
-			router.back();
+			goBack();
 		} catch (error) {
 			toast.show({
 				label:
@@ -54,7 +62,7 @@ function AddFriendModal() {
 				variant: "danger",
 			});
 		}
-	}, [inviteMutation, toast]);
+	}, [goBack, inviteMutation, toast]);
 
 	const handleImport = useCallback(async () => {
 		try {
@@ -72,8 +80,6 @@ function AddFriendModal() {
 			});
 		}
 	}, [importMutation, toast]);
-
-	const goBack = useCallback(() => router.back(), []);
 
 	return (
 		<View

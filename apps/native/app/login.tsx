@@ -40,7 +40,13 @@ export default function LoginScreen() {
 
 	const switchToSignUp = useCallback(() => setView("sign-up"), []);
 	const switchToSignIn = useCallback(() => setView("sign-in"), []);
-	const goBack = useCallback(() => router.back(), []);
+	const goBack = useCallback(() => {
+		if (router.canGoBack()) {
+			router.back();
+		} else {
+			router.replace("/");
+		}
+	}, []);
 
 	return (
 		<View

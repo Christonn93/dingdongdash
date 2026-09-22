@@ -17,11 +17,11 @@ export function DingDongStamp({ triggerKey }: DingDongStampProps) {
 
 	return (
 		<View
-			pointerEvents="none"
 			style={{
 				alignItems: "center",
 				inset: 0,
 				justifyContent: "center",
+				pointerEvents: "none",
 				position: "absolute",
 			}}
 		>

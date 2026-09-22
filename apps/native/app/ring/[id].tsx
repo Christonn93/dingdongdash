@@ -147,7 +147,13 @@ export default function RingScreen() {
 		answer.mutate({ ringId: id });
 	};
 
-	const handleClose = () => router.back();
+	const handleClose = () => {
+		if (router.canGoBack()) {
+			router.back();
+		} else {
+			router.replace("/");
+		}
+	};
 
 	const colors: SceneColors = { accent, foreground, muted };
 
@@ -446,12 +452,12 @@ function HeartbeatOverlay() {
 
 	return (
 		<Animated.View
-			pointerEvents="none"
 			style={[
 				{
 					backgroundColor: "#ef4444",
 					borderRadius: 999,
 					inset: -40,
+					pointerEvents: "none",
 					position: "absolute",
 				},
 				style,

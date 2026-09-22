@@ -456,11 +456,11 @@ export function DoorScene({
 
 			{/* ── The door (a real 3D-swinging layer) ── */}
 			<Animated.View
-				pointerEvents="none"
 				style={[
 					{
 						height: `${(300 / SCENE_H) * 100}%`,
 						left: `${(70 / SCENE_W) * 100}%`,
+						pointerEvents: "none",
 						position: "absolute",
 						top: `${(64 / SCENE_H) * 100}%`,
 						transformOrigin: "left center",

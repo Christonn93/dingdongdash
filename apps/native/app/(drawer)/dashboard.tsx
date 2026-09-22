@@ -254,14 +254,17 @@ export default function Dashboard() {
 				{stampVisible ? (
 					<View
 						className="absolute inset-0 items-center justify-center"
-						pointerEvents="none"
+						style={{ pointerEvents: "none" }}
 					>
 						<DingDongStamp triggerKey={burstId} />
 					</View>
 				) : null}
 
 				{burstId > 0 ? (
-					<View className="absolute inset-0 items-center" pointerEvents="none">
+					<View
+						className="absolute inset-0 items-center"
+						style={{ pointerEvents: "none" }}
+					>
 						<ConfettiBurst key={burstId} />
 					</View>
 				) : null}
