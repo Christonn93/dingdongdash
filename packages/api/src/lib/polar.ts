@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+export const POLAR_SANDBOX_URL = "https://sandbox-api.polar.sh";
+
 /** Parses the POLAR_PRODUCT_IDS env (JSON mapping our productId -> Polar product id). */
 export function parsePolarProductIds(value: string): Record<string, string> {
 	if (!value) {
@@ -15,12 +17,14 @@ export function parsePolarProductIds(value: string): Record<string, string> {
 /** Creates a Polar checkout session and returns the hosted checkout URL. */
 export async function createPolarCheckout(opts: {
 	accessToken: string;
+	baseUrl?: string;
 	customerEmail: string;
 	metadata: Record<string, string>;
 	productId: string;
 	successUrl: string;
 }): Promise<{ url: string }> {
-	const response = await fetch("https://api.polar.sh/v1/checkouts/", {
+	const baseUrl = opts.baseUrl ?? "https://api.polar.sh";
+	const response = await fetch(`${baseUrl}/v1/checkouts/`, {
 		body: JSON.stringify({
 			customer_email: opts.customerEmail,
 			metadata: opts.metadata,

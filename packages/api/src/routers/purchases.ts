@@ -5,13 +5,26 @@ import z from "zod";
 
 import { protectedProcedure, publicProcedure, router } from "../index";
 import { lookupProduct } from "../lib/catalog";
-import { createPolarCheckout, parsePolarProductIds } from "../lib/polar";
+import {
+	createPolarCheckout,
+	POLAR_SANDBOX_URL,
+	parsePolarProductIds,
+} from "../lib/polar";
 import { grantPurchase } from "../lib/purchase-grant";
+import { createStripeCheckout, parseStripePriceIds } from "../lib/stripe";
+
+const PAYMENT_PROVIDER = z.enum(["polar", "stripe"]);
 
 export const purchasesRouter = router({
-	/** Starts a hosted Polar checkout for the web app and returns the URL. */
+	/** Starts a hosted Polar or Stripe checkout and returns the URL. */
 	createCheckout: protectedProcedure
-		.input(z.object({ productId: z.string().min(1) }))
+		.input(
+			z.object({
+				productId: z.string().min(1),
+				provider: PAYMENT_PROVIDER.optional().default("polar"),
+				sandbox: z.boolean().optional().default(false),
+			})
+		)
 		.mutation(async ({ ctx, input }) => {
 			const product = lookupProduct(input.productId);
 			if (!product) {
@@ -20,15 +33,45 @@ export const purchasesRouter = router({
 					message: "Unknown product",
 				});
 			}
-			if (!ctx.polarAccessToken) {
+			if (input.provider === "stripe") {
+				if (!ctx.stripeSecretKey) {
+					throw new TRPCError({
+						code: "NOT_IMPLEMENTED",
+						message: "Stripe payments are not configured yet.",
+					});
+				}
+				const { url } = await createStripeCheckout({
+					customerEmail: ctx.session.user.email,
+					metadata: {
+						productId: input.productId,
+						userId: ctx.session.user.id,
+					},
+					price: {
+						currency: product.currency,
+						priceCents: product.priceCents,
+					},
+					priceId:
+						parseStripePriceIds(ctx.stripePriceIds)[input.productId] ?? "",
+					secretKey: ctx.stripeSecretKey,
+					successUrl: `${ctx.publicWebUrl}/store?purchased=1`,
+				});
+				return { url };
+			}
+
+			const useSandbox = input.sandbox && Boolean(ctx.polarSandboxAccessToken);
+			const accessToken = useSandbox
+				? ctx.polarSandboxAccessToken
+				: ctx.polarAccessToken;
+			if (!accessToken) {
 				throw new TRPCError({
 					code: "NOT_IMPLEMENTED",
-					message: "Payments are not configured yet.",
+					message: "Polar payments are not configured yet.",
 				});
 			}
-			const polarProductId = parsePolarProductIds(ctx.polarProductIds)[
-				input.productId
-			];
+			const productIds = useSandbox
+				? ctx.polarSandboxProductIds
+				: ctx.polarProductIds;
+			const polarProductId = parsePolarProductIds(productIds)[input.productId];
 			if (!polarProductId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -36,7 +79,8 @@ export const purchasesRouter = router({
 				});
 			}
 			const { url } = await createPolarCheckout({
-				accessToken: ctx.polarAccessToken,
+				accessToken,
+				baseUrl: useSandbox ? POLAR_SANDBOX_URL : undefined,
 				customerEmail: ctx.session.user.email,
 				metadata: {
 					productId: input.productId,
@@ -47,7 +91,14 @@ export const purchasesRouter = router({
 			});
 			return { url };
 		}),
-	getCatalog: publicProcedure.query(() => ({ items: catalogItems() })),
+	getCatalog: publicProcedure.query(({ ctx }) => ({
+		items: catalogItems(),
+		paymentMethods: [
+			...(ctx.polarAccessToken ? (["polar"] as const) : []),
+			...(ctx.stripeSecretKey ? (["stripe"] as const) : []),
+		],
+		polarSandbox: Boolean(ctx.polarSandboxAccessToken),
+	})),
 
 	getHistory: protectedProcedure.query(({ ctx }) => {
 		const { db, session } = ctx;

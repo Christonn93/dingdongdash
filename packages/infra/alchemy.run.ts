@@ -30,6 +30,15 @@ export const server = Cloudflare.Worker("server", {
 		POLAR_PRODUCT_IDS: Config.String("POLAR_PRODUCT_IDS").pipe(
 			Config.withDefault("")
 		),
+		POLAR_SANDBOX_ACCESS_TOKEN: Config.String(
+			"POLAR_SANDBOX_ACCESS_TOKEN"
+		).pipe(Config.withDefault("")),
+		POLAR_SANDBOX_PRODUCT_IDS: Config.String("POLAR_SANDBOX_PRODUCT_IDS").pipe(
+			Config.withDefault("")
+		),
+		POLAR_SANDBOX_WEBHOOK_SECRET: Config.String(
+			"POLAR_SANDBOX_WEBHOOK_SECRET"
+		).pipe(Config.withDefault("")),
 		POLAR_WEBHOOK_SECRET: Config.String("POLAR_WEBHOOK_SECRET").pipe(
 			Config.withDefault("")
 		),
@@ -37,6 +46,15 @@ export const server = Cloudflare.Worker("server", {
 			Config.withDefault("http://localhost:3001")
 		),
 		RESEND_API_KEY: Config.String("RESEND_API_KEY").pipe(
+			Config.withDefault("")
+		),
+		STRIPE_PRICE_IDS: Config.String("STRIPE_PRICE_IDS").pipe(
+			Config.withDefault("")
+		),
+		STRIPE_SECRET_KEY: Config.String("STRIPE_SECRET_KEY").pipe(
+			Config.withDefault("")
+		),
+		STRIPE_WEBHOOK_SECRET: Config.String("STRIPE_WEBHOOK_SECRET").pipe(
 			Config.withDefault("")
 		),
 		VONAGE_API_KEY: Config.String("VONAGE_API_KEY").pipe(

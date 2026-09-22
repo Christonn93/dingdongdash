@@ -1,6 +1,7 @@
 import { lookupProduct } from "@dingdongdash/api/lib/catalog";
 import { verifyPolarSignature } from "@dingdongdash/api/lib/polar";
 import { grantPurchase } from "@dingdongdash/api/lib/purchase-grant";
+import { verifyStripeSignature } from "@dingdongdash/api/lib/stripe";
 import { appRouter } from "@dingdongdash/api/routers/index";
 import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
@@ -46,13 +47,16 @@ app.on(["POST", "GET"], "/api/auth/*", async (c) =>
 );
 
 app.post("/api/webhooks/polar", async (c) => {
-	const secret = ENV.POLAR_WEBHOOK_SECRET;
-	if (!secret) {
-		return c.json({ error: "Polar webhooks are not configured" }, 503);
-	}
 	const rawBody = await c.req.text();
 	const signature = c.req.header("polar-signature") ?? "";
-	if (!verifyPolarSignature(rawBody, signature, secret)) {
+	const secrets = [
+		ENV.POLAR_WEBHOOK_SECRET,
+		ENV.POLAR_SANDBOX_WEBHOOK_SECRET,
+	].filter(Boolean);
+	if (
+		secrets.length === 0 ||
+		!secrets.some((s) => verifyPolarSignature(rawBody, signature, s))
+	) {
 		return c.json({ error: "Invalid signature" }, 400);
 	}
 
@@ -71,25 +75,74 @@ app.post("/api/webhooks/polar", async (c) => {
 	}
 
 	if (payload.type === "checkout.updated" && payload.data?.status === "paid") {
-		const { productId, userId } = payload.data.metadata ?? {};
-		const product = productId ? lookupProduct(productId) : undefined;
-		if (product && userId && productId) {
-			const db = await getDb();
-			await grantPurchase(
-				db,
-				userId,
-				{
-					platform: "web",
-					platformTransactionId: payload.data.id ?? `polar-${Date.now()}`,
-					productId,
-				},
-				product
-			);
-		}
+		await grantFromMetadata(payload.data.id, payload.data.metadata);
 	}
 
 	return c.json({ received: true });
 });
+
+app.post("/api/webhooks/stripe", async (c) => {
+	const secret = ENV.STRIPE_WEBHOOK_SECRET;
+	if (!secret) {
+		return c.json({ error: "Stripe webhooks are not configured" }, 503);
+	}
+	const rawBody = await c.req.text();
+	const signature = c.req.header("stripe-signature") ?? "";
+	if (!verifyStripeSignature(rawBody, signature, secret)) {
+		return c.json({ error: "Invalid signature" }, 400);
+	}
+
+	let payload: {
+		data?: {
+			object?: {
+				id?: string;
+				metadata?: Record<string, string>;
+				payment_status?: string;
+			};
+		};
+		type?: string;
+	};
+	try {
+		payload = JSON.parse(rawBody) as typeof payload;
+	} catch {
+		return c.json({ error: "Invalid payload" }, 400);
+	}
+
+	if (
+		payload.type === "checkout.session.completed" &&
+		payload.data?.object?.payment_status === "paid"
+	) {
+		await grantFromMetadata(
+			payload.data.object.id,
+			payload.data.object.metadata
+		);
+	}
+
+	return c.json({ received: true });
+});
+
+/** Grants a purchase from a paid webhook's transaction id + metadata. */
+async function grantFromMetadata(
+	transactionId: string | undefined,
+	metadata: Record<string, string> | undefined
+): Promise<void> {
+	const { productId, userId } = metadata ?? {};
+	const product = productId ? lookupProduct(productId) : undefined;
+	if (!(product && userId && productId)) {
+		return;
+	}
+	const db = await getDb();
+	await grantPurchase(
+		db,
+		userId,
+		{
+			platform: "web",
+			platformTransactionId: transactionId ?? `web-${Date.now()}`,
+			productId,
+		},
+		product
+	);
+}
 
 app.use(
 	"/trpc/*",

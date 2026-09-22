@@ -8,7 +8,7 @@ import {
 } from "@dingdongdash/ui/components/card";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { Reveal } from "@/components/reveal";
@@ -21,6 +21,12 @@ export const Route = createFileRoute("/_auth/store")({
 function StoreRoute() {
 	const catalog = useQuery(trpc.purchases.getCatalog.queryOptions());
 	const inventory = useQuery(trpc.users.getInventory.queryOptions());
+	const [provider, setProvider] = useState<"polar" | "stripe">("polar");
+	const [sandbox, setSandbox] = useState(false);
+
+	const paymentMethods = catalog.data?.paymentMethods ?? [];
+	const polarSandbox = catalog.data?.polarSandbox ?? false;
+	const hasProviderChoice = paymentMethods.length > 1;
 
 	const checkout = useMutation(
 		trpc.purchases.createCheckout.mutationOptions({
@@ -43,9 +49,9 @@ function StoreRoute() {
 
 	const handleBuy = useCallback(
 		(productId: string) => {
-			checkout.mutate({ productId });
+			checkout.mutate({ productId, provider, sandbox });
 		},
-		[checkout]
+		[checkout, provider, sandbox]
 	);
 
 	const handleArmShield = useCallback(() => {
@@ -70,8 +76,45 @@ function StoreRoute() {
 				</div>
 			</Reveal>
 
-			{inventory.data ? (
+			{hasProviderChoice ? (
 				<Reveal index={1}>
+					<div className="mb-6 flex flex-wrap items-center gap-3">
+						<div className="inline-flex rounded-full border bg-muted p-0.5">
+							{(["polar", "stripe"] as const).map((method) =>
+								paymentMethods.includes(method) ? (
+									<button
+										className={`rounded-full px-4 py-1.5 font-medium text-sm transition-colors ${
+											provider === method
+												? "bg-background text-foreground shadow-sm"
+												: "text-muted-foreground hover:text-foreground"
+										}`}
+										key={method}
+										onClick={() => setProvider(method)}
+										type="button"
+									>
+										{method === "polar" ? "Polar" : "Stripe"}
+									</button>
+								) : null
+							)}
+						</div>
+
+						{polarSandbox && provider === "polar" ? (
+							<label className="flex cursor-pointer items-center gap-2 text-muted-foreground text-sm">
+								<input
+									checked={sandbox}
+									className="h-4 w-4 accent-primary"
+									onChange={(e) => setSandbox(e.target.checked)}
+									type="checkbox"
+								/>
+								Polar sandbox
+							</label>
+						) : null}
+					</div>
+				</Reveal>
+			) : null}
+
+			{inventory.data ? (
+				<Reveal index={2}>
 					<Card className="mb-6 border-primary/30 bg-primary/5">
 						<CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 							<div>
@@ -99,7 +142,7 @@ function StoreRoute() {
 
 			<div className="grid gap-4 sm:grid-cols-2">
 				{items.map((item, index) => (
-					<Reveal index={index + 2} key={item.productId}>
+					<Reveal index={index + 3} key={item.productId}>
 						<Card className="transition-shadow hover:shadow-lg">
 							<CardHeader>
 								<CardTitle className="text-base">
@@ -131,8 +174,9 @@ function StoreRoute() {
 			</div>
 
 			<p className="mt-6 text-muted-foreground text-xs">
-				Payments are handled securely by Polar. On iOS and Android, purchases go
-				through the Apple App Store / Google Play billing instead.
+				Payments are handled securely by your chosen provider. On iOS and
+				Android, purchases go through the Apple App Store / Google Play billing
+				instead.
 			</p>
 		</div>
 	);
