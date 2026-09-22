@@ -1,5 +1,5 @@
-import { avatarIds } from "@dingdongdash/db/game";
 import {
+	avatar,
 	deviceToken,
 	friendship,
 	notificationPreference,
@@ -250,7 +250,7 @@ export const usersRouter = router({
 	updateProfile: protectedProcedure
 		.input(
 			z.object({
-				avatarId: z.enum(avatarIds).nullable().optional(),
+				avatarId: z.string().trim().min(1).max(64).nullable().optional(),
 				name: z.string().trim().min(2).max(50).optional(),
 				phoneHash: z
 					.string()
@@ -278,6 +278,20 @@ export const usersRouter = router({
 					code: "BAD_REQUEST",
 					message: "Nothing to update",
 				});
+			}
+
+			if (typeof input.avatarId === "string") {
+				const [existingAvatar] = await db
+					.select({ id: avatar.id })
+					.from(avatar)
+					.where(eq(avatar.id, input.avatarId))
+					.limit(1);
+				if (!existingAvatar) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "That avatar doesn't exist",
+					});
+				}
 			}
 
 			const username =

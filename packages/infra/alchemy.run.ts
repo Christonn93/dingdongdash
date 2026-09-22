@@ -93,7 +93,9 @@ export default Alchemy.Stack(
 			assets: {
 				htmlHandling: "auto-trailing-slash",
 				notFoundHandling: "single-page-application",
-				...(isDev ? {} : { runWorkerFirst: ["/api/*", "/trpc/*"] }),
+				...(isDev
+					? {}
+					: { runWorkerFirst: ["/api/*", "/trpc/*", "/avatars/*"] }),
 			},
 			dev: {
 				port: 3001,

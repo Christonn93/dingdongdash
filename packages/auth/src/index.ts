@@ -128,6 +128,7 @@ export function createAuth(
 		emailAndPassword: {
 			enabled: true,
 			requireEmailVerification: true,
+			revokeSessionsOnPasswordReset: true,
 			sendResetPassword: async ({ url, user: signingUser }) => {
 				await sendAuthEmail(
 					env,

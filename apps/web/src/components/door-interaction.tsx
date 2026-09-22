@@ -1,5 +1,4 @@
 import { AppAvatar } from "@dingdongdash/ui/avatars/app-avatar";
-import type { avatarSpecs } from "@dingdongdash/ui/avatars/avatar-config";
 import { Button } from "@dingdongdash/ui/components/button";
 import { motion, useReducedMotion } from "motion/react";
 
@@ -21,7 +20,7 @@ export interface DoorInteractionProps {
 	onAnswer?: () => void | Promise<void>;
 	secondsRemaining?: number;
 	state: DoorVisualState;
-	visitorAvatarId?: keyof typeof avatarSpecs | null;
+	visitorAvatarId?: string | null;
 	visitorName?: string;
 }
 

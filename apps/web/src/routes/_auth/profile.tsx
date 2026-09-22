@@ -1,6 +1,5 @@
 import { APP_META } from "@dingdongdash/api/lib/app-meta";
 import { AppAvatar } from "@dingdongdash/ui/avatars/app-avatar";
-import { avatarSpecs } from "@dingdongdash/ui/avatars/avatar-config";
 import { Button } from "@dingdongdash/ui/components/button";
 import {
 	Card,
@@ -25,10 +24,6 @@ const SMS_PHONE_REGEX = /^\+[1-9][0-9]{6,14}$/;
 
 const USERNAME_REGEX = /^[a-z0-9_]{3,24}$/;
 
-type AvatarId = keyof typeof avatarSpecs;
-
-const AVATAR_OPTIONS = Object.keys(avatarSpecs) as AvatarId[];
-
 function formatArea(city?: string | null, country?: string | null): string {
 	if (!(city || country)) {
 		return "";
@@ -46,6 +41,7 @@ function ProfileRoute() {
 	const [phone, setPhone] = useState("");
 
 	const me = useQuery(trpc.users.me.queryOptions(undefined));
+	const avatars = useQuery(trpc.avatars.list.queryOptions());
 	const ledger = useQuery(
 		trpc.points.getLedger.queryOptions({ cursor: undefined, limit: 20 })
 	);
@@ -183,7 +179,7 @@ function ProfileRoute() {
 	}, [linkPhone]);
 
 	const handleSelectAvatar = useCallback(
-		(avatarId: AvatarId) => {
+		(avatarId: string) => {
 			avatarMutation.mutate({ avatarId });
 		},
 		[avatarMutation]
@@ -251,8 +247,8 @@ function ProfileRoute() {
 							className="grid grid-cols-4 gap-2 sm:grid-cols-8"
 							role="radiogroup"
 						>
-							{AVATAR_OPTIONS.map((avatarId) => {
-								const selected = me.data?.user.avatarId === avatarId;
+							{avatars.data?.map((avatarOption) => {
+								const selected = me.data?.user.avatarId === avatarOption.id;
 								return (
 									<label
 										className={`relative flex cursor-pointer items-center justify-center rounded-full p-1 outline-none transition-transform focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${
@@ -260,20 +256,20 @@ function ProfileRoute() {
 												? "ring-2 ring-primary ring-offset-2"
 												: "hover:scale-105"
 										} ${avatarMutation.isPending ? "cursor-wait opacity-70" : ""}`}
-										key={avatarId}
+										key={avatarOption.id}
 									>
 										<input
 											checked={selected}
 											className="sr-only"
 											disabled={avatarMutation.isPending}
 											name="avatar"
-											onChange={() => handleSelectAvatar(avatarId)}
+											onChange={() => handleSelectAvatar(avatarOption.id)}
 											type="radio"
-											value={avatarId}
+											value={avatarOption.id}
 										/>
-										<AppAvatar avatarId={avatarId} size="md" />
+										<AppAvatar avatarId={avatarOption.id} size="md" />
 										<span className="sr-only">
-											Choose {avatarSpecs[avatarId].label} avatar
+											Choose {avatarOption.name} avatar
 										</span>
 									</label>
 								);

@@ -2,7 +2,7 @@ import { Button } from "@dingdongdash/ui/components/button";
 import { Input } from "@dingdongdash/ui/components/input";
 import { Label } from "@dingdongdash/ui/components/label";
 import { useForm } from "@tanstack/react-form";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
@@ -160,6 +160,15 @@ export default function SignInForm({
 							</div>
 						)}
 					</form.Field>
+				</div>
+
+				<div className="flex justify-end">
+					<Link
+						className="font-semibold text-primary text-sm underline-offset-4 hover:underline"
+						to="/forgot-password"
+					>
+						Forgot password?
+					</Link>
 				</div>
 
 				<form.Subscribe

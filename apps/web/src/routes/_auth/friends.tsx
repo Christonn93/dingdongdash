@@ -1,5 +1,4 @@
 import { AppAvatar } from "@dingdongdash/ui/avatars/app-avatar";
-import type { avatarSpecs } from "@dingdongdash/ui/avatars/avatar-config";
 import { Button } from "@dingdongdash/ui/components/button";
 import {
 	Card,
@@ -434,7 +433,7 @@ function EmptyFriends({
 }
 
 interface DiscoveryRow {
-	avatarId?: keyof typeof avatarSpecs | null;
+	avatarId?: string | null;
 	id: string;
 	incomingFriendshipId: string | null;
 	name: string;

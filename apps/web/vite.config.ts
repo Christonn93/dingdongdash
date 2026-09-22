@@ -19,6 +19,7 @@ export default defineConfig({
 		port: 3001,
 		proxy: {
 			"/api": "http://localhost:3000",
+			"/avatars": "http://localhost:3000",
 			"/trpc": "http://localhost:3000",
 		},
 	},

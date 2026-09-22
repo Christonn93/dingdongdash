@@ -1,5 +1,4 @@
 import { AppAvatar } from "@dingdongdash/ui/avatars/app-avatar";
-import type { avatarSpecs } from "@dingdongdash/ui/avatars/avatar-config";
 import { Button } from "@dingdongdash/ui/components/button";
 import { Card, CardContent } from "@dingdongdash/ui/components/card";
 import { Skeleton } from "@dingdongdash/ui/components/skeleton";
@@ -215,7 +214,7 @@ function TabButton({
 }
 
 interface LeaderboardEntry {
-	avatarId?: keyof typeof avatarSpecs | null;
+	avatarId?: string | null;
 	incomingFriendshipId: string | null;
 	name: string;
 	points: number;

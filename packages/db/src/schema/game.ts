@@ -30,6 +30,15 @@ export const ledgerReason = [
 export const devicePlatform = ["ios", "android", "web"] as const;
 export const purchaseItem = ["time_shield", "points_pack", "cosmetic"] as const;
 
+/** The fixed, seed-only avatar catalog. IDs are slugs like `adventurer-1`. */
+export const avatar = sqliteTable("avatar", {
+	id: text("id").primaryKey(),
+	image: text("image").notNull(),
+	mime: text("mime").notNull().default("image/png"),
+	name: text("name").notNull(),
+	sortOrder: integer("sort_order").notNull().default(0),
+});
+
 export const deviceToken = sqliteTable(
 	"device_token",
 	{

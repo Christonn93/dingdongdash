@@ -1,3 +1,4 @@
+import { getAvatarImage } from "@dingdongdash/api/lib/avatars";
 import { lookupProduct } from "@dingdongdash/api/lib/catalog";
 import { verifyPolarSignature } from "@dingdongdash/api/lib/polar";
 import { grantPurchase } from "@dingdongdash/api/lib/purchase-grant";
@@ -151,6 +152,20 @@ app.use(
 		router: appRouter,
 	})
 );
+
+app.get("/avatars/:id", async (c) => {
+	const row = await getAvatarImage(await getDb(), c.req.param("id"));
+	if (!row) {
+		return c.json({ error: "Avatar not found" }, 404);
+	}
+	const bytes = Uint8Array.from(atob(row.image), (char) => char.charCodeAt(0));
+	return new Response(bytes, {
+		headers: {
+			"cache-control": "public, max-age=31536000, immutable",
+			"content-type": row.mime,
+		},
+	});
+});
 
 app.get("/", (c) => c.text("OK"));
 

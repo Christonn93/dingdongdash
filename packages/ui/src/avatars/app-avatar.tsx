@@ -1,13 +1,10 @@
-import type { AvatarId } from "@dingdongdash/db/game";
 import { cn } from "cn";
-
-import { AvatarArt } from "./avatar-art";
-import { avatarSpecs } from "./avatar-config";
 
 export type AppAvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 export interface AppAvatarProps {
-	avatarId?: AvatarId | null;
+	/** Slug from the seeded avatar catalog, e.g. `adventurer-1`. */
+	avatarId?: string | null;
 	className?: string;
 	/**
 	 * Accessible name used when the avatar stands alone. When the avatar sits
@@ -27,6 +24,17 @@ const SIZE_CLASSES: Record<AppAvatarSize, string> = {
 	xs: "size-6 text-[10px]",
 };
 
+const BACKDROP_PALETTE = [
+	"from-red-400 to-red-600",
+	"from-violet-400 to-indigo-600",
+	"from-amber-300 to-orange-500",
+	"from-emerald-300 to-green-600",
+	"from-cyan-300 to-blue-500",
+	"from-pink-300 to-rose-500",
+	"from-yellow-300 to-amber-500",
+	"from-fuchsia-400 to-purple-600",
+] as const;
+
 const FALLBACK_PALETTE = [
 	"bg-primary/15 text-primary",
 	"bg-violet-200/70 text-violet-700 dark:bg-violet-500/25 dark:text-violet-200",
@@ -37,15 +45,20 @@ const FALLBACK_PALETTE = [
 
 const NAME_SEGMENTS = /\s+/;
 
+function hashOf(value: string): number {
+	let hash = 0;
+	for (const char of value) {
+		hash = (hash * 31 + (char.codePointAt(0) ?? 0)) % 997;
+	}
+	return hash;
+}
+
 /** Deterministic (never random) fallback avatar color derived from a name. */
 export function avatarFallbackClass(name?: string | null): string {
 	const base = name?.trim() ?? "";
-	let hash = 0;
-	for (const char of base) {
-		hash = (hash * 31 + (char.codePointAt(0) ?? 0)) % 997;
-	}
 	return (
-		FALLBACK_PALETTE[hash % FALLBACK_PALETTE.length] ?? FALLBACK_PALETTE[0]
+		FALLBACK_PALETTE[hashOf(base) % FALLBACK_PALETTE.length] ??
+		FALLBACK_PALETTE[0]
 	);
 }
 
@@ -59,9 +72,9 @@ export function avatarInitials(name?: string | null): string {
 }
 
 /**
- * Product avatar: renders a selectable local SVG avatar when `avatarId` is
- * valid, and falls back to a polished initials badge otherwise. Safe for
- * missing names and invalid ids.
+ * Product avatar: renders the seeded avatar image (served same-origin at
+ * `/avatars/{id}`) on a deterministic gradient backdrop, falling back to a
+ * polished initials badge when the id is missing or the image fails to load.
  */
 export function AppAvatar({
 	avatarId,
@@ -70,26 +83,36 @@ export function AppAvatar({
 	name,
 	size = "md",
 }: AppAvatarProps) {
-	const spec = avatarId ? avatarSpecs[avatarId] : undefined;
 	const sizeClass = SIZE_CLASSES[size];
+	const activeId = avatarId?.trim();
 
-	if (avatarId && spec) {
+	if (activeId) {
 		const classes = cn(
 			"relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br",
-			spec.backdrop,
+			BACKDROP_PALETTE[hashOf(activeId) % BACKDROP_PALETTE.length],
 			sizeClass,
 			className
+		);
+		const image = (
+			<img
+				alt=""
+				className="h-[78%] w-[78%] object-contain"
+				draggable={false}
+				height={128}
+				src={`/avatars/${activeId}`}
+				width={128}
+			/>
 		);
 		if (label) {
 			return (
 				<span aria-label={label} className={classes} role="img">
-					<AvatarArt className="h-[62%] w-[62%]" id={avatarId} />
+					{image}
 				</span>
 			);
 		}
 		return (
 			<span aria-hidden="true" className={classes}>
-				<AvatarArt className="h-[62%] w-[62%]" id={avatarId} />
+				{image}
 			</span>
 		);
 	}

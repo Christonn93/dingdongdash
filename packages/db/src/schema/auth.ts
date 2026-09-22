@@ -1,11 +1,11 @@
 import { defineRelationsPart, sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { avatarIds, STARTING_POINTS } from "../game";
+import { STARTING_POINTS } from "../game";
 
 export const user = sqliteTable("user", {
 	areaCity: text("area_city"),
 	areaCountry: text("area_country"),
-	avatarId: text("avatar_id", { enum: avatarIds }),
+	avatarId: text("avatar_id"),
 	createdAt: integer("created_at", { mode: "timestamp_ms" })
 		.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 		.notNull(),
