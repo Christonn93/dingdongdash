@@ -37,6 +37,7 @@ export function createAuth(
 ) {
 	return betterAuth({
 		advanced: {
+			cookiePrefix: "ddd",
 			defaultCookieAttributes: {
 				httpOnly: true,
 				sameSite: "none",

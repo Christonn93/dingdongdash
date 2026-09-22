@@ -53,20 +53,28 @@ export default Alchemy.Stack(
 	},
 	Effect.gen(function* () {
 		const serverWorker = yield* server;
+
+		// `alchemy dev` runs a Vite module runner that can't host a custom
+		// worker entry; in dev the Vite server proxies /api + /trpc to the
+		// server directly (see apps/web/vite.config.ts). The same-origin proxy
+		// worker is only deployed in production.
+		const isDev =
+			(process.env.ALCHEMY_STAGE ?? "").startsWith("dev") ||
+			process.argv[2] === "dev";
+
 		const webWorker = yield* Cloudflare.Website.Vite("web", {
 			assets: {
 				htmlHandling: "auto-trailing-slash",
 				notFoundHandling: "single-page-application",
-				runWorkerFirst: ["/api/*", "/trpc/*"],
+				...(isDev ? {} : { runWorkerFirst: ["/api/*", "/trpc/*"] }),
 			},
 			dev: {
 				port: 3001,
 			},
-			env: {
-				SERVER: serverWorker,
-				VITE_SERVER_URL: "",
-			},
-			main: "./worker.ts",
+			env: isDev
+				? { VITE_SERVER_URL: serverWorker.url.as<string>() }
+				: { SERVER: serverWorker, VITE_SERVER_URL: "" },
+			...(isDev ? {} : { main: "./worker.ts" }),
 			rootDir: "../../apps/web",
 		});
 
