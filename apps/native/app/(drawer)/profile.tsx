@@ -16,6 +16,7 @@ import { ScrollView, Text, View } from "react-native";
 
 import { Container } from "@/components/container";
 import { PointsBadge } from "@/components/door/points-badge";
+import { ErrorState } from "@/components/game/screen-states";
 import { authClient } from "@/lib/auth-client";
 import { hashPhoneNumber, normalizePhoneNumber } from "@/lib/contacts";
 import { rankForPoints } from "@/lib/game";
@@ -28,6 +29,7 @@ export default function ProfileScreen() {
 	const successColor = useThemeColor("success");
 
 	const me = useQuery(trpc.users.me.queryOptions());
+	const stats = useQuery(trpc.points.getStats.queryOptions());
 	const [ledgerCursor, setLedgerCursor] = useState<string | undefined>();
 	const ledger = useQuery(
 		trpc.points.getLedger.queryOptions({ cursor: ledgerCursor, limit: 20 })
@@ -150,6 +152,37 @@ export default function ProfileScreen() {
 					</View>
 				</View>
 
+				<Surface className="mb-4 rounded-2xl p-4" variant="secondary">
+					<Text className="mb-3 font-semibold text-foreground">Stats</Text>
+					{stats.isLoading ? (
+						<View className="items-center py-4">
+							<Spinner size="sm" />
+						</View>
+					) : null}
+					{stats.data ? (
+						<View className="flex-row">
+							<StatBox
+								color={successColor}
+								icon="checkmark-circle"
+								label="Catches"
+								value={stats.data.catches}
+							/>
+							<StatBox
+								color={dangerColor}
+								icon="close-circle"
+								label="Ditched"
+								value={stats.data.ditches}
+							/>
+							<StatBox
+								color="#f5b301"
+								icon="flame"
+								label="Best streak"
+								value={stats.data.bestStreak}
+							/>
+						</View>
+					) : null}
+				</Surface>
+
 				<Surface className="mb-4 rounded-lg p-4" variant="secondary">
 					<Text className="mb-3 font-medium text-foreground">Display name</Text>
 					<View className="flex-row items-end gap-2">
@@ -239,6 +272,12 @@ export default function ProfileScreen() {
 							<Spinner size="lg" />
 						</View>
 					) : null}
+					{ledger.isError ? (
+						<ErrorState
+							message="We couldn't load your point history."
+							onRetry={() => ledger.refetch()}
+						/>
+					) : null}
 					{!ledger.isLoading && (ledger.data?.entries.length ?? 0) === 0 && (
 						<Text className="text-muted text-sm">No activity yet.</Text>
 					)}
@@ -326,4 +365,36 @@ function reasonIcon(
 
 function reasonLabel(reason: string): string {
 	return REASON_META[reason]?.label ?? reason.replaceAll("_", " ");
+}
+
+function StatBox({
+	color,
+	icon,
+	label,
+	value,
+}: {
+	color: string;
+	icon: React.ComponentProps<typeof Ionicons>["name"];
+	label: string;
+	value: number;
+}) {
+	return (
+		<View className="flex-1 items-center">
+			<View
+				style={{
+					alignItems: "center",
+					backgroundColor: `${color}22`,
+					borderRadius: 18,
+					height: 36,
+					justifyContent: "center",
+					marginBottom: 6,
+					width: 36,
+				}}
+			>
+				<Ionicons color={color} name={icon} size={20} />
+			</View>
+			<Text className="font-black text-foreground text-xl">{value}</Text>
+			<Text className="text-muted text-xs">{label}</Text>
+		</View>
+	);
 }

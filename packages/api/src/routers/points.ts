@@ -183,6 +183,35 @@ export const pointsRouter = router({
 				nextCursor: hasMore && last ? encodeCursor(last) : null,
 			};
 		}),
+
+	getStats: protectedProcedure.query(async ({ ctx }) => {
+		const rows = await ctx.db
+			.select({ reason: pointsLedger.reason })
+			.from(pointsLedger)
+			.where(eq(pointsLedger.userId, ctx.session.user.id))
+			.orderBy(desc(pointsLedger.createdAt), desc(pointsLedger.id));
+
+		let catches = 0;
+		let ditches = 0;
+		let currentStreak = 0;
+		let bestStreak = 0;
+		for (const row of rows) {
+			if (row.reason === "catch") {
+				catches += 1;
+				currentStreak += 1;
+				if (currentStreak > bestStreak) {
+					bestStreak = currentStreak;
+				}
+			} else if (row.reason === "ditch_penalty") {
+				ditches += 1;
+				currentStreak = 0;
+			} else {
+				currentStreak = 0;
+			}
+		}
+
+		return { bestStreak, catches, ditches };
+	}),
 });
 
 interface Cursor {

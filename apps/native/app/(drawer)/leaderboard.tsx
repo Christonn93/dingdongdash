@@ -6,6 +6,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { Container } from "@/components/container";
+import { ErrorState } from "@/components/game/screen-states";
 import { trpc } from "@/utils/trpc";
 
 type Scope = "friends" | "global";
@@ -106,6 +107,13 @@ export default function LeaderboardScreen() {
 					<View className="items-center py-12">
 						<Spinner size="lg" />
 					</View>
+				) : null}
+
+				{scope === "friends" && friends.isError ? (
+					<ErrorState
+						message="We couldn't load the leaderboard."
+						onRetry={() => friends.refetch()}
+					/>
 				) : null}
 
 				{!loading && rows.length === 0 ? (

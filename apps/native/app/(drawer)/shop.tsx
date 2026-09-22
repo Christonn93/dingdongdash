@@ -7,6 +7,7 @@ import { ScrollView, Text, View } from "react-native";
 import { Container } from "@/components/container";
 import { DoorbellButton } from "@/components/door/doorbell-button";
 import { PointsBadge } from "@/components/door/points-badge";
+import { ErrorState } from "@/components/game/screen-states";
 import { trpc } from "@/utils/trpc";
 
 export default function ShopScreen() {
@@ -139,6 +140,11 @@ export default function ShopScreen() {
 					<View className="items-center py-12">
 						<Spinner size="lg" />
 					</View>
+				) : catalog.isError ? (
+					<ErrorState
+						message="We couldn't load the shop catalog."
+						onRetry={() => catalog.refetch()}
+					/>
 				) : (
 					<View className="gap-3">
 						{items.map((item) => {

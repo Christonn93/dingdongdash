@@ -18,7 +18,14 @@ import { playSound } from "@/lib/sound";
 
 interface DoorbellButtonProps {
 	disabled?: boolean;
-	icon?: "bell" | "bell-ringing" | "checkmark" | "arrow" | "gift";
+	icon?:
+		| "bell"
+		| "bell-ringing"
+		| "checkmark"
+		| "arrow"
+		| "gift"
+		| "link"
+		| "people";
 	label: string;
 	loading?: boolean;
 	onPress: () => void;
@@ -37,6 +44,8 @@ const ICON_BY_KIND: Record<
 	"bell-ringing": "notifications",
 	checkmark: "checkmark-circle",
 	gift: "gift",
+	link: "link",
+	people: "people",
 };
 
 const SIZES = {

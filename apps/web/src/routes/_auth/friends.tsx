@@ -59,7 +59,8 @@ function FriendsRoute() {
 
 	const handleInvite = useCallback(async () => {
 		const invite = await inviteMutation.mutateAsync();
-		const result = await shareInvite(invite.url);
+		const url = `${window.location.origin}/invite/${invite.code}`;
+		const result = await shareInvite(url);
 		toast.success(
 			result === "shared"
 				? "Invite shared"

@@ -20,6 +20,7 @@ import { PointsBadge } from "@/components/door/points-badge";
 import { DailyBonusCard } from "@/components/game/daily-bonus-card";
 import { DingDongStamp } from "@/components/game/ding-dong-stamp";
 import { Fireflies } from "@/components/game/fireflies";
+import { HowToPlay } from "@/components/game/how-to-play";
 import { ShakeView } from "@/components/game/shake";
 import { useCatchStreak } from "@/hooks/use-catch-streak";
 import { authClient } from "@/lib/auth-client";
@@ -182,11 +183,48 @@ export default function Dashboard() {
 					/>
 				) : null}
 
+				{me.isError ? (
+					<View
+						style={{
+							alignItems: "center",
+							backgroundColor: `${colors.foreground}12`,
+							borderColor: colors.border,
+							borderRadius: 16,
+							borderWidth: 1,
+							flexDirection: "row",
+							gap: 10,
+							marginBottom: 12,
+							padding: 12,
+						}}
+					>
+						<Ionicons
+							color={colors.foreground}
+							name="cloud-offline-outline"
+							size={18}
+						/>
+						<Text
+							className="flex-1 font-medium text-xs"
+							style={{ color: colors.muted }}
+						>
+							Can't reach the doorbell server.
+						</Text>
+						<Pressable hitSlop={10} onPress={() => me.refetch()}>
+							<Text
+								className="font-bold text-xs"
+								style={{ color: colors.accent }}
+							>
+								Retry
+							</Text>
+						</Pressable>
+					</View>
+				) : null}
+
 				<HeroHeader
 					colors={colors}
 					delta={delta}
 					firstName={firstName}
 					friendCount={friendCount}
+					loginStreak={dailyBonus.data?.streak ?? 0}
 					pendingCount={pendingCount}
 					points={points}
 					rank={rank}
@@ -237,6 +275,14 @@ export default function Dashboard() {
 					open={ringPanelOpen}
 				/>
 
+				<HowToPlay
+					accent={colors.accent}
+					border={colors.border}
+					foreground={colors.foreground}
+					muted={colors.muted}
+					surface={colors.surface}
+				/>
+
 				<View className="items-center py-6">
 					<View className="flex-row items-center gap-1.5">
 						<Ionicons
@@ -263,6 +309,7 @@ function HeroHeader({
 	pendingCount,
 	rank,
 	streak,
+	loginStreak,
 }: {
 	colors: HomeColors;
 	firstName: string;
@@ -272,6 +319,7 @@ function HeroHeader({
 	pendingCount: number;
 	rank: Rank;
 	streak: number;
+	loginStreak: number;
 }) {
 	return (
 		<Animated.View entering={FadeInDown.duration(350)}>
@@ -305,6 +353,9 @@ function HeroHeader({
 					<Pill label={`${rank.emoji} ${rank.title}`} />
 					{streak >= 2 ? (
 						<Pill highlight label={`🔥 ${streak}x streak`} />
+					) : null}
+					{loginStreak >= 2 ? (
+						<Pill highlight label={`📅 ${loginStreak}-day login`} />
 					) : null}
 					{pendingCount > 0 ? (
 						<Pill highlight label={`${pendingCount} pending`} />

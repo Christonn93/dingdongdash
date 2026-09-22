@@ -7,6 +7,7 @@ import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
 
 import { Container } from "@/components/container";
 import { DoorbellButton } from "@/components/door/doorbell-button";
+import { ErrorState } from "@/components/game/screen-states";
 import { trpc } from "@/utils/trpc";
 
 type RingStatus = "caught" | "ditched" | "pending";
@@ -126,7 +127,14 @@ export default function RingsScreen() {
 					</View>
 				) : null}
 
-				{!history.isLoading && entries.length === 0 ? (
+				{history.isError ? (
+					<ErrorState
+						message="We couldn't load your doorbell log."
+						onRetry={() => history.refetch()}
+					/>
+				) : null}
+
+				{!(history.isLoading || history.isError) && entries.length === 0 ? (
 					<Surface
 						className="items-center rounded-2xl py-10"
 						variant="secondary"

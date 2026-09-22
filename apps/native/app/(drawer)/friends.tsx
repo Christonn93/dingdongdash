@@ -14,6 +14,7 @@ import { ScrollView, Share, Text, View } from "react-native";
 
 import { Container } from "@/components/container";
 import { DoorbellButton } from "@/components/door/doorbell-button";
+import { ErrorState } from "@/components/game/screen-states";
 import { readContactPhoneHashes } from "@/lib/contacts";
 import { playSound } from "@/lib/sound";
 import { trpc } from "@/utils/trpc";
@@ -164,6 +165,13 @@ export default function FriendsScreen() {
 					</View>
 				) : null}
 
+				{friends.isError ? (
+					<ErrorState
+						message="We couldn't reach your friends list."
+						onRetry={() => friends.refetch()}
+					/>
+				) : null}
+
 				{incoming.length > 0 && (
 					<View className="mb-4">
 						<Text className="mb-2 font-medium text-foreground">Requests</Text>
@@ -238,7 +246,7 @@ export default function FriendsScreen() {
 				)}
 
 				<Text className="mb-2 font-medium text-foreground">Your friends</Text>
-				{!isLoading && accepted.length === 0 && (
+				{!(isLoading || friends.isError) && accepted.length === 0 && (
 					<Surface
 						className="items-center justify-center rounded-lg py-10"
 						variant="secondary"

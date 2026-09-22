@@ -157,7 +157,7 @@ export const friendsRouter = router({
 			userId: me,
 		});
 
-		return { code, url: `${ctx.publicWebUrl}/invite/${code}` };
+		return { code };
 	}),
 
 	getInviter: protectedProcedure
