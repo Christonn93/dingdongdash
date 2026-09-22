@@ -92,16 +92,14 @@ export function ActiveRings() {
 						key={incoming.id}
 						transition={{ ...spring, delay: index * 0.08 }}
 					>
-						<div className="overflow-hidden rounded-2xl shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] ring-1 ring-primary/30">
-							<RingDoor
-								answering={isOpening}
-								durationMs={incoming.durationMs}
-								onAnswer={() => handleAnswer(incoming.id)}
-								outcome={outcome}
-								remainingMs={remainingMs}
-								ringerName={incoming.ringer.name}
-							/>
-						</div>
+						<RingDoor
+							answering={isOpening}
+							durationMs={incoming.durationMs}
+							onAnswer={() => handleAnswer(incoming.id)}
+							outcome={outcome}
+							remainingMs={remainingMs}
+							ringerName={incoming.ringer.name}
+						/>
 					</motion.div>
 				);
 			})}

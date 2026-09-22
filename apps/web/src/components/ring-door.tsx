@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { doorSpring } from "@/lib/motion";
 
+import { CaughtCelebration } from "./caught-celebration";
+
 interface RingDoorProps {
 	answering: boolean;
 	durationMs: number;
@@ -42,7 +44,7 @@ export function RingDoor({
 	};
 
 	return (
-		<div className="relative flex h-72 flex-col items-center overflow-hidden rounded-2xl">
+		<div className="relative flex h-72 flex-col items-center overflow-hidden rounded-2xl shadow-[0_30px_60px_-20px_rgba(0,0,0,0.55)] ring-1 ring-primary/20">
 			{/* Dusk backdrop */}
 			<div
 				aria-hidden="true"
@@ -84,6 +86,8 @@ export function RingDoor({
 				secondsLeft={secondsLeft}
 				urgent={urgent}
 			/>
+
+			{outcome === "caught" ? <CaughtCelebration name={ringerName} /> : null}
 		</div>
 	);
 }
