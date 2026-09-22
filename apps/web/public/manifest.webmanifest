@@ -9,6 +9,8 @@
   "background_color": "#4f46e5",
   "theme_color": "#4f46e5",
   "categories": ["games", "social", "entertainment"],
+  "fingerprint": "fba6e6e0-8d90-4049-a45b-7db4364eec89",
+  "author": "Christopher Tønnesland",
   "icons": [
     {
       "src": "/icon-192.png",

@@ -14,13 +14,13 @@ export async function createContext({
 	const session = await (await createAuth(db)).api.getSession({
 		headers: context.req.raw.headers,
 	});
-return {
+	return {
 		db,
-		session,
-		publicWebUrl: ENV.PUBLIC_WEB_URL,
-		expoAccessToken: ENV.EXPO_ACCESS_TOKEN,
-		resendApiKey: ENV.RESEND_API_KEY,
 		emailFrom: ENV.EMAIL_FROM,
+		expoAccessToken: ENV.EXPO_ACCESS_TOKEN,
+		publicWebUrl: ENV.PUBLIC_WEB_URL,
+		resendApiKey: ENV.RESEND_API_KEY,
+		session,
 		vonageApiKey: ENV.VONAGE_API_KEY,
 		vonageApiSecret: ENV.VONAGE_API_SECRET,
 		vonageFromNumber: ENV.VONAGE_FROM_NUMBER,

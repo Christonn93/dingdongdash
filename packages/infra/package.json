@@ -1,6 +1,8 @@
 {
   "name": "@dingdongdash/infra",
   "private": true,
+  "license": "MIT",
+  "author": "Christopher Tønnesland <christopher.tonnesland@email.com>",
   "type": "module",
   "scripts": {
     "check-types": "tsc --noEmit",

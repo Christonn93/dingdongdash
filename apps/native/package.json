@@ -2,6 +2,8 @@
   "name": "native",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
+  "author": "Christopher Tønnesland <christopher.tonnesland@email.com>",
   "main": "expo-router/entry",
   "scripts": {
     "android": "expo run:android",

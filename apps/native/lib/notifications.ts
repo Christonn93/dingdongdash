@@ -1,24 +1,24 @@
 import Constants from "expo-constants";
 import {
-	addNotificationResponseReceivedListener,
 	AndroidImportance,
+	addNotificationResponseReceivedListener,
 	getExpoPushTokenAsync,
 	getPermissionsAsync,
+	type NotificationResponse,
 	requestPermissionsAsync,
 	setNotificationChannelAsync,
 	setNotificationHandler,
-	type NotificationResponse,
 } from "expo-notifications";
 import { Platform } from "react-native";
 
-import { trpc } from "@/utils/trpc";
+import { trpcClient } from "@/utils/trpc";
 
 const RING_CHANNEL_ID = "rings";
 
-export type RingNotificationData = {
-	type?: string;
+export interface RingNotificationData {
 	ringId?: string;
-};
+	type?: string;
+}
 
 /** Configure the foreground handler and (on Android) the high-priority ring
  * channel. Run once at app start. */
@@ -33,7 +33,7 @@ export function configureNotificationHandler(): void {
 	});
 
 	if (Platform.OS === "android") {
-		void setNotificationChannelAsync(RING_CHANNEL_ID, {
+		setNotificationChannelAsync(RING_CHANNEL_ID, {
 			enableVibrate: true,
 			importance: AndroidImportance.MAX,
 			name: "Incoming rings",
@@ -46,11 +46,11 @@ export function configureNotificationHandler(): void {
  * server. Returns null when permission is denied or no EAS project is
  * configured yet. */
 export async function registerForPushNotifications(): Promise<string | null> {
-	const current = await getPermissionsAsync();
-	let status = current.status;
+	const { status: currentStatus } = await getPermissionsAsync();
+	let status = currentStatus;
 	if (status !== "granted") {
-		const requested = await requestPermissionsAsync();
-		status = requested.status;
+		const { status: requestedStatus } = await requestPermissionsAsync();
+		status = requestedStatus;
 	}
 	if (status !== "granted") {
 		return null;
@@ -62,7 +62,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 	}
 
 	const { data: token } = await getExpoPushTokenAsync({ projectId });
-	await trpc.users.registerDeviceToken.mutate({
+	await trpcClient.users.registerDeviceToken.mutate({
 		platform: Platform.OS === "ios" ? "ios" : "android",
 		token,
 	});
@@ -73,7 +73,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 export function listenForRingNotifications(
 	onRing: (ringId: string) => void
 ): () => void {
-	return addNotificationResponseReceivedListener(
+	const subscription = addNotificationResponseReceivedListener(
 		(response: NotificationResponse) => {
 			const data = response.notification.request.content
 				.data as RingNotificationData;
@@ -82,4 +82,5 @@ export function listenForRingNotifications(
 			}
 		}
 	);
+	return () => subscription.remove();
 }

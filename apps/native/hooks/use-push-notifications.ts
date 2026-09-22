@@ -22,7 +22,7 @@ export function usePushNotifications() {
 
 	useEffect(() => {
 		if (authed) {
-			void registerForPushNotifications();
+			registerForPushNotifications();
 		}
 	}, [authed]);
 }

@@ -1,3 +1,4 @@
+import { APP_META } from "@dingdongdash/api/lib/app-meta";
 import { Button } from "@dingdongdash/ui/components/button";
 import {
 	Card,
@@ -264,6 +265,19 @@ function ProfileRoute() {
 					))}
 				</ul>
 			</div>
+
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-base">About</CardTitle>
+					<CardDescription>
+						DingDongDitch is open source under the MIT License.
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="text-muted-foreground text-sm">
+					<p>Created by {APP_META.author}.</p>
+					<p className="mt-1 font-mono text-xs">{APP_META.fingerprint}</p>
+				</CardContent>
+			</Card>
 		</div>
 	);
 }

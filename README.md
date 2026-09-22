@@ -120,6 +120,10 @@ cd packages/infra && bunx alchemy deploy --stage production
 
 - Run checks: `bun run check`
 
+## License
+
+Released under the [MIT License](LICENSE). Copyright (c) 2026 Christopher Tønnesland.
+
 ## Project Structure
 
 ```

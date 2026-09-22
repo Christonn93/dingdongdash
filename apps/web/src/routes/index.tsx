@@ -338,7 +338,7 @@ function Footer() {
 			<div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-muted-foreground text-sm sm:flex-row">
 				<span className="font-semibold text-foreground">DingDongDitch</span>
 				<span>Ring the doorbell. Beat the clock.</span>
-				<span>© {new Date().getFullYear()}</span>
+				<span>© {new Date().getFullYear()} Christopher Tønnesland · MIT</span>
 			</div>
 		</footer>
 	);

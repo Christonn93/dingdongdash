@@ -2,6 +2,8 @@
   "name": "@dingdongdash/ui",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
+  "author": "Christopher Tønnesland <christopher.tonnesland@email.com>",
   "type": "module",
   "exports": {
     "./globals.css": "./src/styles/globals.css",

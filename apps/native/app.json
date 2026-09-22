@@ -7,6 +7,10 @@
     "icon": "./assets/images/icon.png",
     "scheme": "dingdongdash",
     "userInterfaceStyle": "automatic",
+    "author": "Christopher Tønnesland",
+    "extra": {
+      "fingerprint": "fba6e6e0-8d90-4049-a45b-7db4364eec89"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.dingdongdash"

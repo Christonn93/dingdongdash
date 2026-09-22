@@ -1,5 +1,7 @@
 {
   "name": "@dingdongdash/db",
+  "license": "MIT",
+  "author": "Christopher Tønnesland <christopher.tonnesland@email.com>",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

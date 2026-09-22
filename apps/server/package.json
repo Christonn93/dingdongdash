@@ -1,5 +1,7 @@
 {
   "name": "server",
+  "license": "MIT",
+  "author": "Christopher Tønnesland <christopher.tonnesland@email.com>",
   "type": "module",
   "main": "src/index.ts",
   "scripts": {

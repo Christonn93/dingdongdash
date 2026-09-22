@@ -2,6 +2,8 @@
   "name": "web",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
+  "author": "Christopher Tønnesland <christopher.tonnesland@email.com>",
   "type": "module",
   "scripts": {
     "build": "vite build",

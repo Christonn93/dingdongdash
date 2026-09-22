@@ -1,5 +1,7 @@
 {
   "name": "@dingdongdash/config",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "license": "MIT",
+  "author": "Christopher Tønnesland <christopher.tonnesland@email.com>"
 }

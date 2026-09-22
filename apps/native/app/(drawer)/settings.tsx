@@ -1,3 +1,4 @@
+import { APP_META } from "@dingdongdash/api/lib/app-meta";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
 	Button,
@@ -219,6 +220,16 @@ export default function SettingsScreen() {
 					Push uses Expo's push service. Email uses Resend and SMS uses Twilio
 					behind the scenes.
 				</Text>
+
+				<Surface className="rounded-lg p-4" variant="secondary">
+					<Text className="mb-1 font-medium text-foreground">About</Text>
+					<Text className="mb-1 text-muted text-xs">
+						Created by {APP_META.author}. Open source under the MIT License.
+					</Text>
+					<Text className="font-mono text-muted text-xs">
+						{APP_META.fingerprint}
+					</Text>
+				</Surface>
 			</View>
 		);
 	}
