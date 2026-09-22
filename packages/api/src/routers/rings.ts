@@ -92,7 +92,8 @@ export const ringsRouter = router({
 			if (pendingRings.length > 0) {
 				throw new TRPCError({
 					code: "TOO_MANY_REQUESTS",
-					message: "They still have a ring at their door — wait for them to answer.",
+					message:
+						"They still have a ring at their door — wait for them to answer.",
 				});
 			}
 
@@ -138,14 +139,9 @@ export const ringsRouter = router({
 					.where(eq(user.id, input.targetUserId));
 			}
 
-			const [ringer] = await db
-				.select({ name: user.name })
-				.from(user)
-				.where(eq(user.id, me))
-				.limit(1);
 			if (!muted) {
 				await notifyUser(ctx, input.targetUserId, "ring", {
-					body: `${ringer?.name ?? "Someone"} is at your door. Answer within 30 seconds or they ditch you.`,
+					body: "Someone's at your door. Answer within 30 seconds or they ditch you.",
 					data: { ringId: newRing.id, type: "ring" },
 					title: "The doorbell is ringing",
 				});

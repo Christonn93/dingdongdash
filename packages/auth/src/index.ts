@@ -11,7 +11,7 @@ import {
 import { pointsLedger } from "@dingdongdash/db/schema/game";
 import { betterAuth } from "better-auth";
 
-import { sendAuthEmail } from "./email";
+import { renderBrandedEmail, sendAuthEmail } from "./email";
 
 const authSchema = { account, session, user, verification };
 
@@ -71,7 +71,12 @@ export function createAuth(
 					env,
 					signingUser.email,
 					"Reset your DingDongDitch password",
-					`<p>Click the link below to reset your password. It expires in one hour.</p><p><a href="${url}">Reset my password</a></p>`
+					renderBrandedEmail({
+						body: "Click the button below to reset your password. The link expires in one hour.",
+						ctaHref: url,
+						ctaLabel: "Reset my password",
+						title: "Reset your password",
+					})
 				);
 			},
 		},
@@ -83,7 +88,12 @@ export function createAuth(
 					env,
 					signingUser.email,
 					"Verify your DingDongDitch email",
-					`<p>Almost there! Confirm your email to start ringing doorbells.</p><p><a href="${url}">Verify my email</a></p>`
+					renderBrandedEmail({
+						body: "Almost there! Confirm your email to start ringing doorbells.",
+						ctaHref: url,
+						ctaLabel: "Verify my email",
+						title: "Verify your email",
+					})
 				);
 			},
 		},

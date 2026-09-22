@@ -7,7 +7,7 @@ import {
 import { eq } from "drizzle-orm";
 
 import type { Context } from "../context";
-import { sendEmail } from "./email";
+import { renderBrandedEmail, sendEmail } from "./email";
 import { sendExpoPush } from "./push";
 import { sendSms } from "./sms";
 
@@ -53,9 +53,10 @@ export async function notifyUser(
 	ctx: Pick<
 		Context,
 		| "db"
-		| "expoAccessToken"
-		| "resendApiKey"
 		| "emailFrom"
+		| "expoAccessToken"
+		| "publicWebUrl"
+		| "resendApiKey"
 		| "vonageApiKey"
 		| "vonageApiSecret"
 		| "vonageFromNumber"
@@ -108,7 +109,13 @@ export async function notifyUser(
 				ctx.emailFrom,
 				row.email,
 				payload.title,
-				`<p>${payload.body}</p>`
+				renderBrandedEmail({
+					body: payload.body,
+					ctaHref: `${ctx.publicWebUrl}/dashboard`,
+					ctaLabel: event === "ring" ? "Open the door" : "View your points",
+					eyebrow: event === "ring" ? "Someone's at your door" : "Ring result",
+					title: payload.title,
+				})
 			);
 			report.email = result.status === "ok";
 		}
