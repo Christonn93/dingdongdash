@@ -5,8 +5,20 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
 import { createContext } from "./context";
-import { desktopOrigins, ENV, nativeDevOrigins } from "./env.server";
+import {
+	desktopOrigins,
+	ENV,
+	liveOrigins,
+	nativeDevOrigins,
+} from "./env.server";
 import { createAuth } from "./services";
+
+function parseOriginList(value: string): string[] {
+	return value
+		.split(",")
+		.map((origin) => origin.trim())
+		.filter(Boolean);
+}
 
 const app = new Hono();
 
@@ -17,7 +29,12 @@ app.use(
 		allowHeaders: ["Content-Type", "Authorization"],
 		allowMethods: ["GET", "POST", "OPTIONS"],
 		credentials: true,
-		origin: [ENV.CORS_ORIGIN, ...desktopOrigins, ...nativeDevOrigins],
+		origin: [
+			...parseOriginList(ENV.CORS_ORIGIN),
+			...desktopOrigins,
+			...liveOrigins,
+			...nativeDevOrigins,
+		],
 	})
 );
 

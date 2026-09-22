@@ -22,6 +22,9 @@ export const DITCH_PENALTY = 10;
 /** Points granted once per UTC day for logging in. */
 export const DAILY_BONUS_POINTS = 25;
 
+/** Extra points on top of the daily bonus when a login streak hits a 7-day milestone. */
+export const STREAK_MILESTONE_BONUS = 50;
+
 /** Extra seconds a Time Shield adds to an incoming ring's countdown. */
 export const TIME_SHIELD_EXTENSION_MS = 15_000;
 

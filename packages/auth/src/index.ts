@@ -13,6 +13,13 @@ import { betterAuth } from "better-auth";
 
 const authSchema = { account, session, user, verification };
 
+function parseOriginList(value: string): string[] {
+	return value
+		.split(",")
+		.map((origin) => origin.trim())
+		.filter(Boolean);
+}
+
 export interface AuthConfig {
 	BETTER_AUTH_SECRET: string;
 	BETTER_AUTH_URL: string;
@@ -55,7 +62,7 @@ export function createAuth(
 		plugins: [expo()],
 		secret: env.BETTER_AUTH_SECRET,
 		trustedOrigins: [
-			env.CORS_ORIGIN,
+			...parseOriginList(env.CORS_ORIGIN),
 			...desktopOrigins,
 			"dingdongdash://",
 			"exp://",

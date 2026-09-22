@@ -1,5 +1,9 @@
 import type { Database } from "@dingdongdash/db";
-import { DAILY_BONUS_POINTS, LEDGER_PAGE_SIZE } from "@dingdongdash/db/game";
+import {
+	DAILY_BONUS_POINTS,
+	LEDGER_PAGE_SIZE,
+	STREAK_MILESTONE_BONUS,
+} from "@dingdongdash/db/game";
 import { pointsLedger, user } from "@dingdongdash/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, lt, or, sql } from "drizzle-orm";
@@ -7,15 +11,28 @@ import z from "zod";
 
 import { protectedProcedure, router } from "../index";
 
+const DAY_MS = 86_400_000;
+
 function todayUtcKey(date = new Date()): string {
 	return date.toISOString().slice(0, 10);
 }
 
-async function lastDailyBonus(
+function utcDateFromKey(key: string): Date {
+	return new Date(`${key}T00:00:00Z`);
+}
+
+function dayDiffDays(laterKey: string, earlierKey: string): number {
+	const later = utcDateFromKey(laterKey).getTime();
+	const earlier = utcDateFromKey(earlierKey).getTime();
+	return Math.round((later - earlier) / DAY_MS);
+}
+
+/** All UTC claim dates for a user's daily bonuses, newest first. */
+async function dailyBonusDates(
 	db: Database,
 	userId: string
-): Promise<{ claimedAtUtc: string } | null> {
-	const [row] = await db
+): Promise<string[]> {
+	const rows = await db
 		.select({ createdAt: pointsLedger.createdAt })
 		.from(pointsLedger)
 		.where(
@@ -24,38 +41,73 @@ async function lastDailyBonus(
 				eq(pointsLedger.reason, "daily_bonus")
 			)
 		)
-		.orderBy(desc(pointsLedger.createdAt), desc(pointsLedger.id))
-		.limit(1);
-	if (!row) {
-		return null;
+		.orderBy(desc(pointsLedger.createdAt), desc(pointsLedger.id));
+	return rows.map((row) => {
+		const createdAt =
+			row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt);
+		return todayUtcKey(createdAt);
+	});
+}
+
+/** Consecutive-day run ending at a given claim date. */
+function runEndingAt(dates: string[], endKey: string): number {
+	const set = new Set(dates);
+	let streak = 0;
+	const cursor = utcDateFromKey(endKey);
+	while (set.has(todayUtcKey(cursor))) {
+		streak += 1;
+		cursor.setUTCDate(cursor.getUTCDate() - 1);
 	}
-	const createdAt =
-		row.createdAt instanceof Date ? row.createdAt : new Date(row.createdAt);
-	return { claimedAtUtc: todayUtcKey(createdAt) };
+	return streak;
+}
+
+/** Login streak that is still alive (last claim is today or yesterday), else 0. */
+function aliveStreak(dates: string[]): number {
+	const unique = [...new Set(dates)].sort().reverse();
+	const last = unique[0];
+	if (!last) {
+		return 0;
+	}
+	if (dayDiffDays(todayUtcKey(), last) > 1) {
+		return 0;
+	}
+	return runEndingAt(unique, last);
 }
 
 export const pointsRouter = router({
 	claimDailyBonus: protectedProcedure.mutation(async ({ ctx }) => {
 		const { db, session } = ctx;
-		const last = await lastDailyBonus(db, session.user.id);
-		if (last && last.claimedAtUtc === todayUtcKey()) {
-			return { granted: false, points: DAILY_BONUS_POINTS };
+		const dates = await dailyBonusDates(db, session.user.id);
+		const today = todayUtcKey();
+
+		if (dates.includes(today)) {
+			return {
+				granted: false,
+				milestone: false,
+				points: DAILY_BONUS_POINTS,
+				streak: runEndingAt(dates, today),
+			};
 		}
+
+		const streak = aliveStreak(dates) + 1;
+		const milestone = streak % 7 === 0;
+		const amount =
+			DAILY_BONUS_POINTS + (milestone ? STREAK_MILESTONE_BONUS : 0);
 
 		await db.batch([
 			db.insert(pointsLedger).values({
-				amount: DAILY_BONUS_POINTS,
+				amount,
 				id: crypto.randomUUID(),
 				reason: "daily_bonus",
 				userId: session.user.id,
 			}),
 			db
 				.update(user)
-				.set({ points: sql`${user.points} + ${DAILY_BONUS_POINTS}` })
+				.set({ points: sql`${user.points} + ${amount}` })
 				.where(eq(user.id, session.user.id)),
 		]);
 
-		return { granted: true, points: DAILY_BONUS_POINTS };
+		return { granted: true, milestone, points: amount, streak };
 	}),
 
 	getBalance: protectedProcedure.query(async ({ ctx }) => {
@@ -72,11 +124,12 @@ export const pointsRouter = router({
 		return { balance: meRow.points };
 	}),
 	getDailyBonusStatus: protectedProcedure.query(async ({ ctx }) => {
-		const last = await lastDailyBonus(ctx.db, ctx.session.user.id);
-		const available = !last || last.claimedAtUtc !== todayUtcKey();
+		const dates = await dailyBonusDates(ctx.db, ctx.session.user.id);
+		const today = todayUtcKey();
 		return {
-			available,
+			available: !dates.includes(today),
 			points: DAILY_BONUS_POINTS,
+			streak: aliveStreak(dates),
 		};
 	}),
 
