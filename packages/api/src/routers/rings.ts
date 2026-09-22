@@ -1,6 +1,5 @@
 import type { Database } from "@dingdongdash/db";
 import {
-	RING_COOLDOWN_MS,
 	RING_DURATION_MS,
 	TIME_SHIELD_EXTENSION_MS,
 } from "@dingdongdash/db/game";
@@ -75,21 +74,25 @@ export const ringsRouter = router({
 				});
 			}
 
-			const recentRings = await db
+			// A friend can be rung repeatedly — but only once their current ring
+			// has resolved. While a ring is pending (and not yet expired) they
+			// still have the 30s (or 45s with a Time Shield) to answer.
+			const pendingRings = await db
 				.select({ id: ring.id })
 				.from(ring)
 				.where(
 					and(
 						eq(ring.ringerId, me),
 						eq(ring.targetId, input.targetUserId),
-						gt(ring.createdAt, new Date(Date.now() - RING_COOLDOWN_MS))
+						eq(ring.status, "pending"),
+						gt(ring.expiresAt, new Date())
 					)
 				)
 				.limit(1);
-			if (recentRings.length > 0) {
+			if (pendingRings.length > 0) {
 				throw new TRPCError({
 					code: "TOO_MANY_REQUESTS",
-					message: "You already rang this friend recently. Try again later.",
+					message: "They still have a ring at their door — wait for them to answer.",
 				});
 			}
 
