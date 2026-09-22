@@ -1,3 +1,4 @@
+import { AppAvatar } from "@dingdongdash/ui/avatars/app-avatar";
 import { Button } from "@dingdongdash/ui/components/button";
 import {
 	Card,
@@ -7,10 +8,9 @@ import {
 } from "@dingdongdash/ui/components/card";
 import { Skeleton } from "@dingdongdash/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { ActiveRings } from "@/components/active-rings";
 import { Reveal } from "@/components/reveal";
 import { readContactPhoneHashes } from "@/utils/contacts";
 import { shareInvite } from "@/utils/invite";
@@ -98,6 +98,8 @@ function FriendsRoute() {
 	}, [syncMutation]);
 
 	const { accepted = [], incoming = [], outgoing = [] } = friends.data ?? {};
+	const hasRequests = incoming.length > 0;
+	const hasSent = outgoing.length > 0;
 
 	return (
 		<div className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -107,55 +109,8 @@ function FriendsRoute() {
 						Friends
 					</h1>
 					<p className="mt-1 text-muted-foreground text-sm">
-						Ringing requires a mutual friendship. Sync your contacts to find
-						friends instantly.
+						Ring your friends and grow your circle.
 					</p>
-				</div>
-			</Reveal>
-
-			<div className="mb-6">
-				<ActiveRings />
-			</div>
-
-			<Reveal index={1}>
-				<div className="mb-6 grid gap-4 sm:grid-cols-2">
-					<Card>
-						<CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-							<div>
-								<CardTitle className="text-base">
-									Find friends from your contacts
-								</CardTitle>
-								<CardDescription>
-									Uses a one-way hash of phone numbers — your address book never
-									leaves this device.
-								</CardDescription>
-							</div>
-							<Button disabled={syncMutation.isPending} onClick={handleSync}>
-								{syncMutation.isPending ? "Syncing…" : "Sync contacts"}
-							</Button>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-							<div>
-								<CardTitle className="text-base">
-									Invite a friend by link
-								</CardTitle>
-								<CardDescription>
-									Send a link and they're added as friends the moment they open
-									it.
-								</CardDescription>
-							</div>
-							<Button
-								disabled={inviteMutation.isPending}
-								onClick={handleInvite}
-								variant="outline"
-							>
-								{inviteMutation.isPending ? "Creating…" : "Invite"}
-							</Button>
-						</CardContent>
-					</Card>
 				</div>
 			</Reveal>
 
@@ -166,20 +121,79 @@ function FriendsRoute() {
 					<Skeleton className="h-20 w-full" />
 				</div>
 			) : (
-				<Reveal index={2}>
-					<div className="space-y-8">
-						<Section title="Requests">
-							{incoming.length === 0 ? (
-								<SectionEmpty />
+				<div className="space-y-8">
+					<Reveal>
+						<Section title="Your friends">
+							{accepted.length === 0 ? (
+								<EmptyFriends
+									invitePending={inviteMutation.isPending}
+									onFindContacts={handleSync}
+									onInvite={handleInvite}
+									syncPending={syncMutation.isPending}
+								/>
 							) : (
+								<div className="space-y-2">
+									{accepted.map((friendship) => (
+										<Card key={friendship.friendshipId}>
+											<CardContent className="flex flex-wrap items-center justify-between gap-3">
+												<div className="flex min-w-0 items-center gap-3">
+													<AppAvatar
+														avatarId={friendship.friend.avatarId}
+														name={friendship.friend.name}
+														size="sm"
+													/>
+													<div className="min-w-0">
+														<p className="truncate font-medium text-foreground text-sm">
+															{friendship.friend.name}
+														</p>
+														<p className="truncate text-muted-foreground text-xs">
+															{friendship.friend.points.toLocaleString()} points
+															{friendship.muted ? " · muted" : ""}
+														</p>
+													</div>
+												</div>
+												<div className="flex items-center gap-2">
+													<Button
+														onClick={() =>
+															muteMutation.mutate({
+																muted: !friendship.muted,
+																targetUserId: friendship.friend.id,
+															})
+														}
+														size="sm"
+														variant="outline"
+													>
+														{friendship.muted ? "Unmute" : "Mute"}
+													</Button>
+													<Button
+														disabled={ringMutation.isPending}
+														onClick={() => handleRing(friendship.friend.id)}
+														size="sm"
+													>
+														Ring
+													</Button>
+												</div>
+											</CardContent>
+										</Card>
+									))}
+								</div>
+							)}
+						</Section>
+					</Reveal>
+
+					{hasRequests ? (
+						<Reveal index={1}>
+							<Section title="Requests">
 								<div className="space-y-2">
 									{incoming.map((request) => (
 										<Card key={request.friendshipId}>
 											<CardContent className="flex items-center justify-between gap-3">
 												<div className="flex min-w-0 items-center gap-3">
-													<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-semibold text-foreground text-sm">
-														{initials(request.requester.name)}
-													</div>
+													<AppAvatar
+														avatarId={request.requester.avatarId}
+														name={request.requester.name}
+														size="sm"
+													/>
 													<div className="min-w-0">
 														<p className="truncate font-medium text-foreground text-sm">
 															{request.requester.name}
@@ -204,23 +218,25 @@ function FriendsRoute() {
 										</Card>
 									))}
 								</div>
-							)}
-						</Section>
+							</Section>
+						</Reveal>
+					) : null}
 
-						<Section title="Sent">
-							{outgoing.length === 0 ? (
-								<SectionEmpty />
-							) : (
+					{hasSent ? (
+						<Reveal index={2}>
+							<Section title="Sent invites">
 								<div className="space-y-2">
 									{outgoing.map((request) => (
 										<Card key={request.friendshipId}>
 											<CardContent className="flex items-center justify-between gap-3">
-												<div className="flex items-center gap-3">
-													<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted font-semibold text-foreground text-sm">
-														{initials(request.friend.name)}
-													</div>
-													<div>
-														<p className="font-medium text-foreground text-sm">
+												<div className="flex min-w-0 items-center gap-3">
+													<AppAvatar
+														avatarId={request.friend.avatarId}
+														name={request.friend.name}
+														size="sm"
+													/>
+													<div className="min-w-0">
+														<p className="truncate font-medium text-foreground text-sm">
 															{request.friend.name}
 														</p>
 														<p className="text-muted-foreground text-xs">
@@ -232,70 +248,57 @@ function FriendsRoute() {
 										</Card>
 									))}
 								</div>
-							)}
-						</Section>
+							</Section>
+						</Reveal>
+					) : null}
 
-						<Section title="Your friends">
-							{accepted.length === 0 ? (
-								<div className="rounded-lg border border-dashed p-8 text-center">
-									<p className="text-muted-foreground text-sm">
-										No friends yet. Sync your contacts or ask a friend to find
-										you.
-									</p>
-									<Link
-										className="mt-2 inline-block text-primary text-sm hover:underline"
-										to="/profile"
-									>
-										Link your phone number to get found
-									</Link>
-								</div>
-							) : (
-								<div className="space-y-2">
-									{accepted.map((friendship) => (
-										<Card key={friendship.friendshipId}>
-											<CardContent className="flex items-center justify-between gap-3">
-												<div className="flex items-center gap-3">
-													<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 font-semibold text-primary text-sm">
-														{initials(friendship.friend.name)}
-													</div>
-													<div>
-														<p className="font-medium text-foreground text-sm">
-															{friendship.friend.name}
-														</p>
-														<p className="text-muted-foreground text-xs">
-															{friendship.friend.points.toLocaleString()} points
-														</p>
-													</div>
-												</div>
-												<div className="flex items-center gap-2">
-													<Button
-														onClick={() =>
-															muteMutation.mutate({
-																muted: !friendship.muted,
-																targetUserId: friendship.friend.id,
-															})
-														}
-														size="sm"
-														variant="ghost"
-													>
-														{friendship.muted ? "Unmute" : "Mute"}
-													</Button>
-													<Button
-														disabled={ringMutation.isPending}
-														onClick={() => handleRing(friendship.friend.id)}
-														size="sm"
-													>
-														Ring
-													</Button>
-												</div>
-											</CardContent>
-										</Card>
-									))}
-								</div>
-							)}
+					<Reveal index={3}>
+						<Section title="Find more friends">
+							<div className="grid gap-4 sm:grid-cols-2">
+								<Card>
+									<CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+										<div>
+											<CardTitle className="text-base">
+												Find friends from your contacts
+											</CardTitle>
+											<CardDescription>
+												Uses a one-way hash of phone numbers — your address book
+												never leaves this device.
+											</CardDescription>
+										</div>
+										<Button
+											disabled={syncMutation.isPending}
+											onClick={handleSync}
+										>
+											{syncMutation.isPending ? "Syncing…" : "Sync contacts"}
+										</Button>
+									</CardContent>
+								</Card>
+
+								<Card>
+									<CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+										<div>
+											<CardTitle className="text-base">
+												Invite a friend by link
+											</CardTitle>
+											<CardDescription>
+												Send a link and they're added as friends the moment they
+												open it.
+											</CardDescription>
+										</div>
+										<Button
+											disabled={inviteMutation.isPending}
+											onClick={handleInvite}
+											variant="outline"
+										>
+											{inviteMutation.isPending ? "Creating…" : "Invite"}
+										</Button>
+									</CardContent>
+								</Card>
+							</div>
 						</Section>
-					</div>
-				</Reveal>
+					</Reveal>
+				</div>
 			)}
 		</div>
 	);
@@ -318,21 +321,47 @@ function Section({
 	);
 }
 
-function SectionEmpty() {
+function EmptyFriends({
+	invitePending,
+	onFindContacts,
+	onInvite,
+	syncPending,
+}: {
+	invitePending: boolean;
+	onFindContacts: () => void;
+	onInvite: () => void;
+	syncPending: boolean;
+}) {
 	return (
-		<p className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
-			Nothing here yet.
-		</p>
+		<div className="flex flex-col items-center gap-4 rounded-lg border border-dashed px-6 py-10 text-center">
+			<div className="flex -space-x-3">
+				<AppAvatar avatarId="doorbell" name="Doorbell" size="sm" />
+				<AppAvatar avatarId="house" name="House" size="sm" />
+				<AppAvatar avatarId="cat" name="Cat" size="sm" />
+			</div>
+			<div className="max-w-sm space-y-1">
+				<p className="font-medium text-foreground">Your doorstep is quiet for now.</p>
+				<p className="text-muted-foreground text-sm">
+					Invite someone or find friends from your contacts to start ringing.
+				</p>
+			</div>
+			<div className="flex flex-wrap items-center justify-center gap-2">
+				<Button
+					disabled={invitePending}
+					onClick={onInvite}
+					size="sm"
+				>
+					{invitePending ? "Creating…" : "Invite a friend"}
+				</Button>
+				<Button
+					disabled={syncPending}
+					onClick={onFindContacts}
+					size="sm"
+					variant="outline"
+				>
+					{syncPending ? "Syncing…" : "Find contacts"}
+				</Button>
+			</div>
+		</div>
 	);
-}
-
-const WHITESPACE = /\s+/;
-
-function initials(name: string): string {
-	return name
-		.split(WHITESPACE)
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((part) => part[0]?.toUpperCase())
-		.join("");
 }

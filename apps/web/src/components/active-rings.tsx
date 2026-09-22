@@ -11,7 +11,10 @@ import { celebrate, celebrateFromSides } from "@/lib/confetti";
 import { spring } from "@/lib/motion";
 import { trpc } from "@/utils/trpc";
 
-import { RingDoor } from "./ring-door";
+import {
+	DoorInteraction,
+	type DoorVisualState,
+} from "./door-interaction";
 
 const POLL_MS = 3000;
 
@@ -83,8 +86,10 @@ export function ActiveRings() {
 		<div className="space-y-4">
 			{rings.map((incoming, index) => {
 				const remainingMs = new Date(incoming.expiresAt).getTime() - now;
+				const secondsLeft = Math.max(0, Math.ceil(remainingMs / 1000));
 				const isOpening = opening.has(incoming.id);
 				const outcome = outcomes.get(incoming.id) ?? null;
+				const state = doorVisualState({ isOpening, outcome, secondsLeft });
 				return (
 					<motion.div
 						animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -92,19 +97,42 @@ export function ActiveRings() {
 						key={incoming.id}
 						transition={{ ...spring, delay: index * 0.08 }}
 					>
-						<RingDoor
-							answering={isOpening}
-							durationMs={incoming.durationMs}
+						<DoorInteraction
+							disabled={state === "expired"}
+							isAnswering={isOpening}
 							onAnswer={() => handleAnswer(incoming.id)}
-							outcome={outcome}
-							remainingMs={remainingMs}
-							ringerName={incoming.ringer.name}
+							secondsRemaining={remainingMs}
+							state={state}
+							visitorAvatarId={incoming.ringer.avatarId}
+							visitorName={incoming.ringer.name}
 						/>
 					</motion.div>
 				);
 			})}
 		</div>
 	);
+}
+
+/** Maps live ring state to the presentation state the door understands. */
+function doorVisualState({
+	isOpening,
+	outcome,
+	secondsLeft,
+}: {
+	isOpening: boolean;
+	outcome: AnswerOutcome | null;
+	secondsLeft: number;
+}): DoorVisualState {
+	if (isOpening) {
+		return "opening";
+	}
+	if (outcome === "caught") {
+		return "answered";
+	}
+	if (outcome === "ditched" || secondsLeft <= 0) {
+		return "expired";
+	}
+	return "incoming";
 }
 
 function IdleDoor() {

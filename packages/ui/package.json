@@ -10,6 +10,7 @@
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",
     "./hooks/*": "./src/hooks/*.ts",
+    "./avatars/*": "./src/avatars/*.tsx",
     "./postcss.config": "./postcss.config.mjs"
   },
   "scripts": {
