@@ -32,13 +32,16 @@ export const ringsRouter = router({
 			}
 
 			const status = await resolveIfExpired(db, ringRow);
-			if (status === "pending") {
+			if (status === null) {
 				await applyCatch(db, ringRow);
 				await notifyUser(ctx, ringRow.ringerId, "caught", {
 					body: "They opened the door in time. −5 points.",
 					data: { outcome: "caught", ringId: ringRow.id, type: "ring_result" },
 					title: "You got caught!",
 				});
+				return { outcome: "caught" as const, ring: ringRow };
+			}
+			if (status === "caught") {
 				return { outcome: "caught" as const, ring: ringRow };
 			}
 			await notifyUser(ctx, me, "ditched", {
