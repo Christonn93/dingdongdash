@@ -32,7 +32,7 @@ export function DoorThumb({
 
 	const ring = () => {
 		setPings((count) => count + 1);
-		playRingSound(theme.bellStyle, cameraDoorbell);
+		playRingSound(theme.bellStyle);
 		onRing?.();
 	};
 

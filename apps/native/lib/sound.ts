@@ -124,14 +124,7 @@ export function playSound(name: SoundName): void {
 }
 
 /** Plays the ring sound of a door design (each door announces itself differently). */
-export function playRingSound(
-	bellStyle: BellStyle,
-	cameraDoorbell = false
-): void {
-	if (cameraDoorbell) {
-		playSound("chime");
-		return;
-	}
+export function playRingSound(bellStyle: BellStyle): void {
 	switch (bellStyle) {
 		case "knocker":
 			playSound("knock");
@@ -151,11 +144,7 @@ export function playRingSound(
 }
 
 /** Plays a purchased ring sound by its catalog id (dingdong, knock, crank, neon, deepbell, marimba). */
-export function playSoundById(soundId: string, cameraDoorbell = false): void {
-	if (cameraDoorbell) {
-		playSound("chime");
-		return;
-	}
+export function playSoundById(soundId: string): void {
 	switch (soundId) {
 		case "knock":
 			playSound("knock");

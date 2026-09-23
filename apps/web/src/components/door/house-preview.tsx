@@ -31,7 +31,7 @@ export function HousePreview({
 	const [open, setOpen] = useState(false);
 
 	const ring = () => {
-		playRingSound(theme.bellStyle, cameraDoorbell);
+		playRingSound(theme.bellStyle);
 		setOpen(true);
 		window.setTimeout(() => setOpen(false), 2600);
 	};

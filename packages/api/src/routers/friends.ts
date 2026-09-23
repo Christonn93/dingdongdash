@@ -30,6 +30,8 @@ import { relationshipForUsers } from "../lib/relationships";
 
 const friendColumns = {
 	avatarId: user.avatarId,
+	cameraDoorbell: user.cameraDoorbell,
+	doorSkinId: user.doorSkinId,
 	email: user.email,
 	id: user.id,
 	image: user.image,

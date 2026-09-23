@@ -76,7 +76,7 @@ export function RingResultToast() {
 		} else {
 			toast.custom(
 				(id) => (
-					<CaughtThemToast
+					<GotAwayToast
 						delta={latestSent.delta}
 						onClose={() => toast.dismiss(id)}
 					/>
@@ -123,8 +123,8 @@ function CaughtToast({
 	);
 }
 
-/** The ringer's win: the target never opened the door. Big, cheerful, loud. */
-function CaughtThemToast({
+/** The ringer's win: the target never made it to the door. You got away. */
+function GotAwayToast({
 	delta,
 	onClose,
 }: {
@@ -154,7 +154,7 @@ function CaughtThemToast({
 				</motion.div>
 				<div>
 					<p className="font-display font-extrabold text-base text-primary">
-						You caught them!
+						You got away!
 					</p>
 					<p className="text-muted-foreground text-sm">
 						They never made it to the door. {formatDelta(delta)} points.

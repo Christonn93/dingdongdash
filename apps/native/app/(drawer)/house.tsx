@@ -144,9 +144,7 @@ export default function HouseScreen() {
 								cameraDoorbell={cameraDoorbell}
 								disabled
 								idleAction="ring"
-								onRing={() =>
-									playRingSound(preview.theme.bellStyle, cameraDoorbell)
-								}
+								onRing={() => playRingSound(preview.theme.bellStyle)}
 								phase="idle"
 								size={320}
 								skin={preview.theme}
@@ -194,7 +192,7 @@ export default function HouseScreen() {
 										}
 										onPreview={() => {
 											setPreviewSkinId(skin.id);
-											playRingSound(theme.bellStyle, cameraDoorbell);
+											playRingSound(theme.bellStyle);
 										}}
 										owned={skin.owned}
 										previewing={preview.id === skin.id}
@@ -245,7 +243,6 @@ export default function HouseScreen() {
 									accentColor={accentColor}
 									borderColor={borderColor}
 									buying={buySound.isPending || equipSound.isPending}
-									cameraDoorbell={cameraDoorbell}
 									canAfford={points >= sound.pricePoints}
 									description={sound.description}
 									equipped={sound.equipped}
@@ -435,7 +432,6 @@ function SoundCard({
 	canAfford,
 	buying,
 	soundId,
-	cameraDoorbell,
 	accentColor,
 	borderColor,
 	mutedColor,
@@ -449,7 +445,6 @@ function SoundCard({
 	canAfford: boolean;
 	buying: boolean;
 	soundId: string;
-	cameraDoorbell: boolean;
 	accentColor: string;
 	borderColor: string;
 	mutedColor: string;
@@ -478,7 +473,7 @@ function SoundCard({
 			<Text className="mb-3 text-muted text-sm">{description}</Text>
 			<View style={{ flexDirection: "row", gap: 10 }}>
 				<Button
-					onPress={() => playSoundById(soundId, cameraDoorbell)}
+					onPress={() => playSoundById(soundId)}
 					style={{ flex: 1 }}
 					variant="secondary"
 				>

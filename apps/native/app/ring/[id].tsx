@@ -120,10 +120,7 @@ export default function RingScreen() {
 			if (shielded) {
 				playSound("shield");
 			} else {
-				playSoundById(
-					me.data?.user.ringSoundId ?? "dingdong",
-					me.data?.user.cameraDoorbell ?? false
-				);
+				playSoundById(me.data?.user.ringSoundId ?? "dingdong");
 			}
 		}
 	}, [active.data, me.data, phase, ring, shielded]);

@@ -298,15 +298,10 @@ For production, it is useful to add an explicit `settlementStatus` such as `unse
 ## Suggested implementation order
 
 1. Implement the `Ring` state machine with `pending`, `caught`, and `ditched`.
-
 2. Implement one transactional settlement function used by both the answer endpoint and the expiry callback.
-
 3. Add append-only ledger entries and calculate the effective penalty through a separate loss-floor policy.
-
 4. Add notifications and result messages after the core state transitions are idempotent.
-
 5. Add friendship checks, cooldowns, rate limits, blocking, muting, and quiet hours before inviting external testers.
-
 6. Add purchases only after the free gameplay loop is reliable and receipt validation is server-side.
 
 The most important invariant is: **one ring can produce only one final outcome and one set of ledger entries**. This protects against duplicate taps, delayed notifications, offline reconnection, timer retries, and concurrent requests.

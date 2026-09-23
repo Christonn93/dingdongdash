@@ -1,16 +1,21 @@
 import { DOOR_SKINS } from "@dingdongdash/api/lib/door-catalog";
 import { Button } from "@dingdongdash/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { playDingDong, playMiss, playSoundById, playSparkle } from "@/lib/audio";
+import {
+	playDingDong,
+	playMiss,
+	playSoundById,
+	playSparkle,
+} from "@/lib/audio";
 import { celebrate, celebrateFromSides } from "@/lib/confetti";
 import { spring } from "@/lib/motion";
 import { trpc } from "@/utils/trpc";
 
 import { DoorInteraction, type DoorVisualState } from "./door-interaction";
+import { RingFriendPicker } from "./ring-friend-picker";
 import { DoorbellChamp } from "./ring-result-toast";
 
 const POLL_MS = 3000;
@@ -66,8 +71,7 @@ export function ActiveRings() {
 			seenIncoming.current.add(ringItem.id);
 			announceIncomingRing(
 				ringItem.ringer?.name ?? "Someone",
-				me.data?.user.ringSoundId ?? "dingdong",
-				me.data?.user.cameraDoorbell ?? false
+				me.data?.user.ringSoundId ?? "dingdong"
 			);
 		}
 	}, [active.data, me.data]);
@@ -192,12 +196,8 @@ function doorVisualState({
 
 let titleFlashTimer: number | undefined;
 
-function announceIncomingRing(
-	name: string,
-	soundId = "dingdong",
-	cameraDoorbell = false
-): void {
-	playSoundById(soundId, cameraDoorbell);
+function announceIncomingRing(name: string, soundId = "dingdong"): void {
+	playSoundById(soundId);
 	toast.custom(
 		(id) => <IncomingRingToast name={name} onClose={() => toast.dismiss(id)} />,
 		{ duration: 8000 }
@@ -315,6 +315,7 @@ function YouCaughtThemToast({
 function IdleDoor() {
 	const reduceMotion = useReducedMotion();
 	const [pings, setPings] = useState(0);
+	const [pickerOpen, setPickerOpen] = useState(false);
 
 	const handlePress = () => {
 		setPings((count) => count + 1);
@@ -376,12 +377,19 @@ function IdleDoor() {
 						)}
 					</motion.button>
 
-					<Link to="/friends">
-						<Button className="rounded-full px-6" size="lg">
-							Ring a friend
-						</Button>
-					</Link>
+					<Button
+						className="rounded-full px-6"
+						onClick={() => setPickerOpen((value) => !value)}
+						size="lg"
+					>
+						{pickerOpen ? "Close" : "Ring a friend"}
+					</Button>
 				</div>
+
+				<RingFriendPicker
+					onClose={() => setPickerOpen(false)}
+					open={pickerOpen}
+				/>
 			</div>
 		</div>
 	);

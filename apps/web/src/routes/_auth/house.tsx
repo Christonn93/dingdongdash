@@ -236,7 +236,6 @@ function HouseRoute() {
 									<Reveal index={index} key={sound.id}>
 										<SoundCard
 											busy={buySound.isPending || equipSound.isPending}
-											cameraDoorbell={catalog.data?.cameraDoorbell ?? false}
 											canAfford={points >= sound.pricePoints}
 											description={sound.description}
 											equipped={sound.equipped}
@@ -391,7 +390,6 @@ function SoundCard({
 	canAfford,
 	busy,
 	soundId,
-	cameraDoorbell,
 	onAction,
 }: {
 	title: string;
@@ -402,7 +400,6 @@ function SoundCard({
 	canAfford: boolean;
 	busy: boolean;
 	soundId: string;
-	cameraDoorbell: boolean;
 	onAction: () => void;
 }) {
 	let actionLabel = `${pricePoints} pts`;
@@ -436,7 +433,7 @@ function SoundCard({
 			<CardContent className="flex flex-col gap-2">
 				<Button
 					className="w-full rounded-full"
-					onClick={() => playSoundById(soundId, cameraDoorbell)}
+					onClick={() => playSoundById(soundId)}
 					variant="outline"
 				>
 					▶ Preview

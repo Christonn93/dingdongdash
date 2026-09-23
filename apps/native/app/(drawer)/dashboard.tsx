@@ -39,7 +39,13 @@ interface IncomingRing {
 }
 
 interface FriendRow {
-	friend: { id: string; name: string; points: number };
+	friend: {
+		cameraDoorbell?: boolean;
+		doorSkinId?: string;
+		id: string;
+		name: string;
+		points: number;
+	};
 	friendshipId: string;
 }
 
@@ -550,6 +556,8 @@ function FriendPickerPanel({
 				<View>
 					{accepted.map((friendship) => (
 						<FriendRingRow
+							cameraDoorbell={friendship.friend.cameraDoorbell ?? false}
+							doorSkinId={friendship.friend.doorSkinId ?? "classic"}
 							key={friendship.friendshipId}
 							loading={loading}
 							name={friendship.friend.name}
@@ -596,46 +604,42 @@ function Pill({
 function FriendRingRow({
 	name,
 	points,
+	doorSkinId,
+	cameraDoorbell,
 	onRing,
 	loading,
 }: {
 	name: string;
 	points: number;
+	doorSkinId: string;
+	cameraDoorbell: boolean;
 	onRing: () => void;
 	loading: boolean;
 }) {
 	const accentColor = useThemeColor("accent");
 	const foregroundColor = useThemeColor("foreground");
 	const mutedColor = useThemeColor("muted");
-	const initial = name.trim().charAt(0).toUpperCase() || "?";
+	const skin =
+		DOOR_SKINS.find((item) => item.id === doorSkinId) ?? DOOR_SKINS[0];
 
 	return (
-		<Pressable
-			disabled={loading}
-			onPress={onRing}
-			style={({ pressed }) => ({
-				alignItems: "center",
-				borderRadius: 14,
-				flexDirection: "row",
-				gap: 12,
-				opacity: pressed ? 0.7 : 1,
-				paddingHorizontal: 8,
-				paddingVertical: 10,
-				transform: [{ scale: pressed ? 0.98 : 1 }],
-			})}
+		<View
+			className="flex-row items-center gap-3 rounded-2xl p-2"
+			style={{ backgroundColor: `${foregroundColor}08` }}
 		>
-			<View
-				style={{
-					alignItems: "center",
-					backgroundColor: accentColor,
-					borderRadius: 20,
-					height: 40,
-					justifyContent: "center",
-					width: 40,
-				}}
-			>
-				<Text className="font-extrabold text-base text-white">{initial}</Text>
+			{/* The friend's own door — its bell rings them; the door never opens here */}
+			<View style={{ borderRadius: 14, overflow: "hidden", width: 84 }}>
+				<DoorScene
+					cameraDoorbell={cameraDoorbell}
+					disabled={loading}
+					idleAction="ring"
+					onRing={onRing}
+					phase="idle"
+					size={84}
+					skin={skin.theme}
+				/>
 			</View>
+
 			<View className="flex-1">
 				<Text className="font-bold text-sm" style={{ color: foregroundColor }}>
 					{name}
@@ -643,23 +647,33 @@ function FriendRingRow({
 				<Text className="text-xs" style={{ color: mutedColor }}>
 					{points.toLocaleString()} pts
 				</Text>
+				<Pressable
+					disabled={loading}
+					onPress={onRing}
+					style={({ pressed }) => ({
+						alignItems: "center",
+						alignSelf: "flex-start",
+						backgroundColor: "rgba(249,115,22,0.14)",
+						borderRadius: 999,
+						flexDirection: "row",
+						gap: 5,
+						marginTop: 8,
+						opacity: pressed ? 0.7 : 1,
+						paddingHorizontal: 12,
+						paddingVertical: 6,
+						transform: [{ scale: pressed ? 0.97 : 1 }],
+					})}
+				>
+					<Ionicons
+						color={accentColor}
+						name="notifications-outline"
+						size={15}
+					/>
+					<Text className="font-bold text-xs" style={{ color: accentColor }}>
+						Ring the bell
+					</Text>
+				</Pressable>
 			</View>
-			<View
-				style={{
-					alignItems: "center",
-					backgroundColor: "rgba(249,115,22,0.12)",
-					borderRadius: 999,
-					flexDirection: "row",
-					gap: 4,
-					paddingHorizontal: 12,
-					paddingVertical: 7,
-				}}
-			>
-				<Ionicons color={accentColor} name="notifications-outline" size={15} />
-				<Text className="font-bold text-xs" style={{ color: accentColor }}>
-					Ring
-				</Text>
-			</View>
-		</Pressable>
+		</View>
 	);
 }

@@ -14,10 +14,22 @@ function getAudioContext(): AudioContext | null {
 	if (!audioContext) {
 		audioContext = new AudioCtor();
 	}
-	if (audioContext.state === "suspended") {
-		audioContext.resume().catch(() => undefined);
-	}
 	return audioContext;
+}
+
+/** Resumes a suspended AudioContext, then schedules `schedule` so its tones
+ * land on a running clock. Browsers freeze `currentTime` while suspended;
+ * scheduling before resume makes every note collapse onto one instant. */
+function playOnReady(schedule: () => void): void {
+	const context = getAudioContext();
+	if (!context) {
+		return;
+	}
+	if (context.state === "suspended") {
+		void context.resume().then(schedule).catch(schedule);
+		return;
+	}
+	schedule();
 }
 
 interface ToneOptions {
@@ -49,33 +61,41 @@ function tone(frequency: number, options: ToneOptions = {}): void {
 
 /** Classic two-tone doorbell: ding… dong. */
 export function playDingDong(): void {
-	tone(987.77, { delay: 0, duration: 0.4, volume: 0.2 }); // B5
-	tone(783.99, { delay: 0.26, duration: 0.55, volume: 0.24 }); // G5
+	playOnReady(() => {
+		tone(987.77, { delay: 0, duration: 0.4, volume: 0.3 }); // B5
+		tone(783.99, { delay: 0.26, duration: 0.55, volume: 0.34 }); // G5
+	});
 }
 
 /** Rising sparkle arpeggio for catches and success moments. */
 export function playSparkle(): void {
-	const notes = [523.25, 659.25, 783.99, 1046.5];
-	for (const [index, note] of notes.entries()) {
-		tone(note, {
-			delay: index * 0.09,
-			duration: 0.4,
-			type: "triangle",
-			volume: 0.16,
-		});
-	}
+	playOnReady(() => {
+		const notes = [523.25, 659.25, 783.99, 1046.5];
+		for (const [index, note] of notes.entries()) {
+			tone(note, {
+				delay: index * 0.09,
+				duration: 0.4,
+				type: "triangle",
+				volume: 0.22,
+			});
+		}
+	});
 }
 
 /** Soft thud for a door swinging open. */
 export function playThud(): void {
-	tone(140, { delay: 0, duration: 0.22, type: "sine", volume: 0.4 });
-	tone(70, { delay: 0.02, duration: 0.28, type: "sine", volume: 0.28 });
+	playOnReady(() => {
+		tone(140, { delay: 0, duration: 0.22, type: "sine", volume: 0.4 });
+		tone(70, { delay: 0.02, duration: 0.28, type: "sine", volume: 0.28 });
+	});
 }
 
 /** Gentle descending tone for a missed ring / loss. */
 export function playMiss(): void {
-	tone(392, { delay: 0, duration: 0.3, type: "triangle", volume: 0.2 });
-	tone(311.13, { delay: 0.18, duration: 0.4, type: "triangle", volume: 0.18 });
+	playOnReady(() => {
+		tone(392, { delay: 0, duration: 0.3, type: "triangle", volume: 0.22 });
+		tone(311.13, { delay: 0.18, duration: 0.4, type: "triangle", volume: 0.2 });
+	});
 }
 
 /**
@@ -83,14 +103,7 @@ export function playMiss(): void {
  * A brass bell ding-dongs, a cottage knocker knocks, a Victorian crank
  * clatters, a modern touch pad pings, and a neon bell glides.
  */
-export function playRingSound(
-	bellStyle: "bell" | "knocker" | "crank" | "touch" | "neon",
-	cameraDoorbell = false
-): void {
-	if (cameraDoorbell) {
-		playDingDong();
-		return;
-	}
+export function playRingSound(bellStyle: "bell" | "knocker" | "crank" | "touch" | "neon"): void {
 	switch (bellStyle) {
 		case "knocker":
 			playKnock();
@@ -111,75 +124,83 @@ export function playRingSound(
 
 /** Two low, heavy knocks — the cottage iron knocker. */
 function playKnock(): void {
-	tone(175, { delay: 0, duration: 0.12, type: "sine", volume: 0.5 });
-	tone(150, { delay: 0.28, duration: 0.16, type: "sine", volume: 0.5 });
+	playOnReady(() => {
+		tone(160, { delay: 0, duration: 0.14, type: "sine", volume: 0.6 });
+		tone(120, { delay: 0.28, duration: 0.2, type: "sine", volume: 0.6 });
+	});
 }
 
-/** A mechanical clatter — an antique crank bell being turned. */
+/** A bright mechanical rattle — an antique crank bell being turned. */
 function playCrank(): void {
-	const clicks = [0, 0.07, 0.16, 0.24, 0.37];
-	for (const [index, delay] of clicks.entries()) {
-		tone(620 + (index % 2) * 190, {
-			delay,
-			duration: 0.06,
-			type: "square",
-			volume: 0.1,
-		});
-	}
+	playOnReady(() => {
+		const clicks = [0, 0.06, 0.13, 0.2, 0.28, 0.36];
+		for (const [index, delay] of clicks.entries()) {
+			tone(820 + (index % 2) * 220, {
+				delay,
+				duration: 0.05,
+				type: "square",
+				volume: 0.22,
+			});
+		}
+	});
 }
 
-/** A clean, soft digital ping — the modern touch bell. */
+/** A clean, crisp double ping — the modern touch bell. */
 function playTouchPing(): void {
-	tone(1046.5, { delay: 0, duration: 0.32, type: "sine", volume: 0.22 });
-	tone(1567.98, { delay: 0.09, duration: 0.22, type: "sine", volume: 0.1 });
+	playOnReady(() => {
+		tone(1318.5, { delay: 0, duration: 0.3, type: "sine", volume: 0.3 });
+		tone(1760, { delay: 0.08, duration: 0.24, type: "sine", volume: 0.18 });
+	});
 }
 
 /** A rising synth glide — the neon night doorbell. */
 function playNeonGlide(): void {
-	const context = getAudioContext();
-	if (!context) {
-		return;
-	}
-	const start = context.currentTime;
-	const oscillator = context.createOscillator();
-	const gain = context.createGain();
-	oscillator.type = "sawtooth";
-	oscillator.frequency.setValueAtTime(220, start);
-	oscillator.frequency.exponentialRampToValueAtTime(880, start + 0.35);
-	gain.gain.setValueAtTime(0.0001, start);
-	gain.gain.exponentialRampToValueAtTime(0.13, start + 0.05);
-	gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.48);
-	oscillator.connect(gain);
-	gain.connect(context.destination);
-	oscillator.start(start);
-	oscillator.stop(start + 0.52);
+	playOnReady(() => {
+		const context = getAudioContext();
+		if (!context) {
+			return;
+		}
+		const start = context.currentTime;
+		const oscillator = context.createOscillator();
+		const gain = context.createGain();
+		oscillator.type = "sawtooth";
+		oscillator.frequency.setValueAtTime(220, start);
+		oscillator.frequency.exponentialRampToValueAtTime(880, start + 0.35);
+		gain.gain.setValueAtTime(0.0001, start);
+		gain.gain.exponentialRampToValueAtTime(0.2, start + 0.05);
+		gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.48);
+		oscillator.connect(gain);
+		gain.connect(context.destination);
+		oscillator.start(start);
+		oscillator.stop(start + 0.52);
+	});
 }
 
 /** A warm, low two-tone that echoes — the deep doorbell. */
 function playDeepBell(): void {
-	tone(392, { delay: 0, duration: 0.7, type: "sine", volume: 0.3 });
-	tone(293.66, { delay: 0.32, duration: 0.95, type: "sine", volume: 0.3 });
+	playOnReady(() => {
+		tone(392, { delay: 0, duration: 0.7, type: "sine", volume: 0.36 });
+		tone(293.66, { delay: 0.32, duration: 0.95, type: "sine", volume: 0.34 });
+	});
 }
 
 /** A cheerful rising marimba riff. */
 function playMarimba(): void {
-	const notes = [523.25, 659.25, 783.99, 1046.5];
-	for (const [index, note] of notes.entries()) {
-		tone(note, {
-			delay: index * 0.1,
-			duration: 0.3,
-			type: "triangle",
-			volume: 0.2,
-		});
-	}
+	playOnReady(() => {
+		const notes = [523.25, 659.25, 783.99, 1046.5];
+		for (const [index, note] of notes.entries()) {
+			tone(note, {
+				delay: index * 0.1,
+				duration: 0.3,
+				type: "triangle",
+				volume: 0.26,
+			});
+		}
+	});
 }
 
 /** Plays a ring sound by its catalog id (dingdong, knock, crank, neon, deepbell, marimba). */
-export function playSoundById(soundId: string, cameraDoorbell = false): void {
-	if (cameraDoorbell) {
-		playDingDong();
-		return;
-	}
+export function playSoundById(soundId: string): void {
 	switch (soundId) {
 		case "knock":
 			playKnock();
