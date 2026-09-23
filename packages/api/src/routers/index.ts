@@ -1,5 +1,6 @@
 import { protectedProcedure, publicProcedure, router } from "../index";
 import { avatarsRouter } from "./avatars";
+import { doorsRouter } from "./doors";
 import { friendsRouter } from "./friends";
 import { leaderboardRouter } from "./leaderboard";
 import { pointsRouter } from "./points";
@@ -9,6 +10,7 @@ import { usersRouter } from "./users";
 
 export const appRouter = router({
 	avatars: avatarsRouter,
+	doors: doorsRouter,
 	friends: friendsRouter,
 	healthCheck: publicProcedure.query(() => "OK"),
 	leaderboard: leaderboardRouter,

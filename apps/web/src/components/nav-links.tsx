@@ -5,6 +5,7 @@ export const NAV_LINKS = [
 	{ label: "Dashboard", to: "/dashboard" },
 	{ label: "Friends", to: "/friends" },
 	{ label: "Leaderboard", to: "/leaderboard" },
+	{ label: "My House", to: "/house" },
 	{ label: "Shop", to: "/store" },
 	{ label: "Profile", to: "/profile" },
 ] as const;

@@ -1,3 +1,4 @@
+import type { DoorSkinTheme } from "@dingdongdash/api/lib/door-catalog";
 import { AppAvatar } from "@dingdongdash/ui/avatars/app-avatar";
 import { Button } from "@dingdongdash/ui/components/button";
 import { motion, useReducedMotion } from "motion/react";
@@ -5,6 +6,12 @@ import { motion, useReducedMotion } from "motion/react";
 import { doorSpring } from "@/lib/motion";
 
 import { CaughtCelebration } from "./caught-celebration";
+import { DoorArt } from "./door/door-art";
+import {
+	DOOR_SCENE_BOX,
+	DOORWAY_POSITION,
+	HouseBackdrop,
+} from "./door/house-backdrop";
 
 export type DoorVisualState =
 	| "idle"
@@ -14,31 +21,37 @@ export type DoorVisualState =
 	| "expired";
 
 export interface DoorInteractionProps {
+	cameraDoorbell?: boolean;
 	disabled?: boolean;
 	durationMs?: number;
 	isAnswering?: boolean;
 	onAnswer?: () => void | Promise<void>;
 	secondsRemaining?: number;
+	spyCamera?: boolean;
 	state: DoorVisualState;
+	theme: DoorSkinTheme;
 	visitorAvatarId?: string | null;
-	visitorName?: string;
+	visitorName?: string | null;
 }
 
 const DEFAULT_DURATION_MS = 30_000;
 
 /**
- * The incoming-ring front-door moment. The door is fully closed until the
- * recipient answers; the bell is mounted on the frame, and the countdown and
- * answer action support rather than compete with the door. Pure presentation —
+ * The incoming-ring front-door moment, dressed in the owner's chosen door skin.
+ * The door is fully closed until the recipient answers; the bell (or knocker)
+ * and countdown support rather than compete with the door. Pure presentation —
  * all domain logic lives in the caller.
  */
 export function DoorInteraction({
+	cameraDoorbell = false,
 	disabled,
 	durationMs = DEFAULT_DURATION_MS,
 	isAnswering,
 	onAnswer,
 	secondsRemaining = 0,
+	spyCamera = false,
 	state,
+	theme,
 	visitorAvatarId,
 	visitorName,
 }: DoorInteractionProps) {
@@ -48,6 +61,7 @@ export function DoorInteraction({
 	const urgent = state === "incoming" && secondsRemaining <= 10_000;
 	const lost = state === "expired";
 	const seconds = Math.max(0, Math.ceil(secondsRemaining / 1000));
+	const who = visitorName ?? "Someone";
 
 	const handleAnswer = () => {
 		if (!canAnswer) {
@@ -75,13 +89,23 @@ export function DoorInteraction({
 			{/* Visitor identity + countdown */}
 			<div className="relative z-10 flex items-center justify-between gap-3 px-4 pt-4 sm:px-6">
 				<div className="flex min-w-0 items-center gap-2.5">
-					<AppAvatar avatarId={visitorAvatarId} name={visitorName} size="sm" />
+					{cameraDoorbell && visitorName ? (
+						<AppAvatar
+							avatarId={visitorAvatarId}
+							name={visitorName}
+							size="sm"
+						/>
+					) : (
+						<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-amber-200/30 bg-[#2c2136]">
+							<span className="text-sm">?</span>
+						</span>
+					)}
 					<div className="min-w-0">
 						<p className="truncate font-bold font-display text-amber-50 text-sm drop-shadow">
-							{visitorName} is at your door
+							{who} is at your door
 						</p>
 						<p className="truncate text-[11px] text-amber-100/75">
-							{statusLine(lost, state, seconds)}
+							{statusLine(lost, state, seconds, cameraDoorbell, visitorName)}
 						</p>
 					</div>
 				</div>
@@ -98,11 +122,14 @@ export function DoorInteraction({
 			{/* The door */}
 			<div className="relative z-10 flex justify-center px-4 pt-6 pb-5">
 				<DoorScene
+					cameraDoorbell={cameraDoorbell}
 					canAnswer={canAnswer}
 					lost={lost}
 					onAnswer={handleAnswer}
 					open={open}
 					reduceMotion={reduceMotion}
+					spyCamera={spyCamera}
+					theme={theme}
 					urgent={urgent}
 					visitorName={visitorName}
 				/>
@@ -135,7 +162,9 @@ export function DoorInteraction({
 function statusLine(
 	lost: boolean,
 	state: DoorVisualState,
-	seconds: number
+	seconds: number,
+	cameraDoorbell: boolean,
+	visitorName?: string | null
 ): string {
 	if (state === "answered") {
 		return "You answered the door — you're connected!";
@@ -145,6 +174,9 @@ function statusLine(
 	}
 	if (state === "opening") {
 		return "Swinging the door open…";
+	}
+	if (!(cameraDoorbell || visitorName)) {
+		return `A mystery ringer. Answer in ${seconds}s or they ditch you.`;
 	}
 	return `Answer in ${seconds}s or they ditch you`;
 }
@@ -197,140 +229,96 @@ function CountdownBadge({
 		</div>
 	);
 }
-
 function DoorScene({
+	cameraDoorbell,
 	canAnswer,
 	lost,
 	onAnswer,
 	open,
 	reduceMotion,
+	spyCamera,
+	theme,
 	urgent,
 	visitorName,
 }: {
+	cameraDoorbell: boolean;
 	canAnswer: boolean;
 	lost: boolean;
 	onAnswer: () => void;
 	open: boolean;
 	reduceMotion: boolean | null;
+	spyCamera: boolean;
+	theme: DoorSkinTheme;
 	urgent: boolean;
-	visitorName?: string;
+	visitorName?: string | null;
 }) {
 	return (
-		<div className="relative h-52 w-44 rounded-lg sm:h-60 sm:w-52">
-			{/* Porch wall */}
-			<div
-				aria-hidden="true"
-				className="absolute inset-0 rounded-lg"
-				style={{
-					background: "linear-gradient(180deg, #8a4f3f 0%, #7a4638 100%)",
-					boxShadow: "0 22px 44px -14px rgba(0,0,0,0.6)",
-				}}
+		<div className={DOOR_SCENE_BOX}>
+			<HouseBackdrop
+				cameraDoorbell={cameraDoorbell}
+				id="ddd-house"
+				interactive={canAnswer}
+				onRing={onAnswer}
+				spyCamera={spyCamera}
+				theme={theme}
 			/>
 
-			{/* Porch light + house number */}
-			<div className="absolute top-[6px] left-1/2 flex -translate-x-1/2 flex-col items-center gap-1">
-				<span
+			{/* Doorway — frame, interior glow and the swinging door */}
+			<div className={DOORWAY_POSITION}>
+				{/* Door frame */}
+				<div
 					aria-hidden="true"
-					className="ddd-glow h-2 w-2 rounded-full bg-amber-200 shadow-[0_0_10px_3px_rgba(255,220,150,0.9)]"
-				/>
-				<span
-					aria-hidden="true"
-					className="flex h-3.5 items-center rounded-sm bg-[#2c2136] px-1.5 font-bold text-[8px] text-amber-100 tracking-widest"
-				>
-					17
-				</span>
-			</div>
-
-			{/* Door frame */}
-			<div
-				aria-hidden="true"
-				className="absolute inset-[12px] rounded-md border-8 border-[#2c2136]"
-			/>
-
-			{/* Interior glow — hidden until the door opens */}
-			<motion.div
-				animate={{ opacity: open ? 1 : 0 }}
-				aria-hidden="true"
-				className="absolute inset-[20px] rounded-sm"
-				style={{
-					background:
-						"linear-gradient(180deg, #ffe8c0 0%, #ffc98a 55%, #e0a86b 100%)",
-					boxShadow: "inset 0 0 24px rgba(255,180,90,0.7)",
-				}}
-				transition={doorSpring}
-			/>
-
-			{/* The closed door — swings open from its hinge edge on answer */}
-			<motion.button
-				animate={
-					reduceMotion
-						? { opacity: open ? 0.3 : 1 }
-						: { rotateY: open ? -68 : 0, x: open ? -5 : 0 }
-				}
-				aria-label={
-					visitorName ? `Answer the door for ${visitorName}` : "Answer the door"
-				}
-				className={`absolute inset-y-[20px] left-[20px] z-10 w-[calc(100%-40px)] cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c2136] ${
-					lost ? "cursor-default opacity-75 saturate-50" : ""
-				} ${urgent && !open && !reduceMotion ? "ddd-urgency" : ""}`}
-				disabled={!canAnswer}
-				onClick={onAnswer}
-				style={{
-					background: "linear-gradient(180deg, #8a5a34 0%, #6f4626 100%)",
-					boxShadow:
-						"inset -7px 0 12px rgba(0,0,0,0.35), inset 3px 0 6px rgba(255,220,170,0.18), 0 6px 14px rgba(0,0,0,0.35)",
-					transformOrigin: "left center",
-					transformPerspective: 800,
-				}}
-				transition={doorSpring}
-				type="button"
-			>
-				{/* Vertical planks */}
-				<span
-					aria-hidden="true"
-					className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-sm opacity-30"
+					className="absolute inset-0 rounded-md border-8"
+					id="ddd-frame"
 					style={{
-						background:
-							"repeating-linear-gradient(90deg, transparent 0px, transparent 16px, #4c3118 16px, #4c3118 18px)",
+						borderColor: theme.frame,
+						boxShadow: `inset 0 0 0 2px ${theme.frame}`,
 					}}
 				/>
-				{/* Top panel */}
-				<span
-					aria-hidden="true"
-					className="absolute top-2.5 right-1.5 left-1.5 h-8 rounded-sm border-[#5b3c22] border-[3px]"
-				/>
-				{/* Bottom panel */}
-				<span
-					aria-hidden="true"
-					className="absolute right-1.5 bottom-2.5 left-1.5 h-9 rounded-sm border-[#5b3c22] border-[3px]"
-				/>
-				{/* Door knob near the opening edge */}
-				<span
-					aria-hidden="true"
-					className="absolute top-1/2 right-1.5 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-amber-300 shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
-				/>
-			</motion.button>
 
-			{/* Doorbell mounted on the frame, near the handle side */}
-			<button
-				aria-label={canAnswer ? "Answer the doorbell" : "Doorbell"}
-				className={`absolute top-[52px] -right-1.5 z-20 cursor-pointer rounded-full ${
-					canAnswer ? "" : "cursor-default"
-				}`}
-				disabled={!canAnswer}
-				onClick={onAnswer}
-				type="button"
-			>
-				<span className="relative flex h-7 w-7 items-center justify-center rounded-full border-[#2c2136] border-[3px] bg-gradient-to-br from-amber-200 to-amber-400 shadow-[0_2px_5px_rgba(0,0,0,0.4),0_0_12px_rgba(255,200,120,0.8)]">
-					<span className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-red-500 to-red-700" />
-				</span>
-				{canAnswer && !reduceMotion ? (
-					<span
-						aria-hidden="true"
-						className="ddd-pulse-ring absolute inset-0 rounded-full border-2 border-amber-200"
-					/>
-				) : null}
-			</button>
+				{/* Interior glow — hidden until the door opens */}
+				<motion.div
+					animate={{ opacity: open ? 1 : 0 }}
+					aria-hidden="true"
+					className="absolute inset-[10px] rounded-sm"
+					id="ddd-interior-glow"
+					style={{
+						background:
+							"linear-gradient(180deg, #ffe8c0 0%, #ffc98a 55%, #e0a86b 100%)",
+						boxShadow: "inset 0 0 24px rgba(255,180,90,0.7)",
+					}}
+					transition={doorSpring}
+				/>
+
+				{/* The closed door — swings open from its hinge edge on answer */}
+				<motion.button
+					animate={
+						reduceMotion
+							? { opacity: open ? 0.3 : 1 }
+							: { rotateY: open ? -68 : 0, x: open ? -5 : 0 }
+					}
+					aria-label={
+						visitorName
+							? `Answer the door for ${visitorName}`
+							: "Answer the door"
+					}
+					className={`absolute inset-[10px] cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c2136] ${
+						lost ? "cursor-default opacity-75 saturate-50" : ""
+					} ${urgent && !open && !reduceMotion ? "ddd-urgency" : ""}`}
+					disabled={!canAnswer}
+					id="ddd-door"
+					onClick={onAnswer}
+					style={{
+						boxShadow: "0 6px 14px rgba(0,0,0,0.35)",
+						transformOrigin: "left center",
+						transformPerspective: 800,
+					}}
+					transition={doorSpring}
+					type="button"
+				>
+					<DoorArt className="h-full w-full" id="ddd-door-art" theme={theme} />
+				</motion.button>
+			</div>
 		</div>
 	);
 }

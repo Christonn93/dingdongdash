@@ -77,9 +77,13 @@ function aliveStreak(dates: string[]): number {
 export const pointsRouter = router({
 	claimDailyBonus: protectedProcedure.mutation(async ({ ctx }) => {
 		const { db, session } = ctx;
-		const dates = await dailyBonusDates(db, session.user.id);
+		const userId = session.user.id;
 		const today = todayUtcKey();
+		const dates = await dailyBonusDates(db, userId);
 
+		// Fast path for the common case (and for legacy rows written before the
+		// `day` column existed). The unique index + onConflictDoNothing below
+		// still guarantee no double grant under a concurrent race.
 		if (dates.includes(today)) {
 			return {
 				granted: false,
@@ -94,34 +98,61 @@ export const pointsRouter = router({
 		const amount =
 			DAILY_BONUS_POINTS + (milestone ? STREAK_MILESTONE_BONUS : 0);
 
-		await db.batch([
-			db.insert(pointsLedger).values({
+		// The (user_id, day) unique index + onConflictDoNothing make a double
+		// claim impossible even if two requests land in the same second. Only
+		// the request that actually wins the insert credits the cache.
+		const inserted = await db
+			.insert(pointsLedger)
+			.values({
 				amount,
+				day: today,
 				id: crypto.randomUUID(),
 				reason: "daily_bonus",
-				userId: session.user.id,
-			}),
-			db
-				.update(user)
-				.set({ points: sql`${user.points} + ${amount}` })
-				.where(eq(user.id, session.user.id)),
-		]);
-
+				userId,
+			})
+			.onConflictDoNothing()
+			.returning({ id: pointsLedger.id });
+		if (inserted.length === 0) {
+			return {
+				granted: false,
+				milestone: false,
+				points: DAILY_BONUS_POINTS,
+				streak: aliveStreak(dates),
+			};
+		}
+		await db
+			.update(user)
+			.set({ points: sql`${user.points} + ${amount}` })
+			.where(eq(user.id, userId));
 		return { granted: true, milestone, points: amount, streak };
 	}),
 
 	getBalance: protectedProcedure.query(async ({ ctx }) => {
 		const { db, session } = ctx;
-		const me = await db
-			.select({ points: user.points })
+		const userId = session.user.id;
+
+		// The ledger is the source of truth: derive the balance from it and
+		// self-heal the cache if it ever drifted, so reads can't disagree.
+		const [sumRow] = await db
+			.select({
+				total: sql<number>`coalesce(sum(${pointsLedger.amount}), 0)`,
+			})
+			.from(pointsLedger)
+			.where(eq(pointsLedger.userId, userId));
+		const [meRow] = await db
+			.select({ id: user.id, points: user.points })
 			.from(user)
-			.where(eq(user.id, session.user.id))
+			.where(eq(user.id, userId))
 			.limit(1);
-		const [meRow] = me;
 		if (!meRow) {
 			throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 		}
-		return { balance: meRow.points };
+
+		const total = sumRow?.total ?? 0;
+		if (meRow.points !== total) {
+			await db.update(user).set({ points: total }).where(eq(user.id, userId));
+		}
+		return { balance: total };
 	}),
 	getDailyBonusStatus: protectedProcedure.query(async ({ ctx }) => {
 		const dates = await dailyBonusDates(ctx.db, ctx.session.user.id);
@@ -193,6 +224,7 @@ export const pointsRouter = router({
 
 		let catches = 0;
 		let ditches = 0;
+		let wonRings = 0;
 		let currentStreak = 0;
 		let bestStreak = 0;
 		for (const row of rows) {
@@ -205,12 +237,18 @@ export const pointsRouter = router({
 			} else if (row.reason === "ditch_penalty") {
 				ditches += 1;
 				currentStreak = 0;
+			} else if (row.reason === "ditch_reward") {
+				wonRings += 1;
+				currentStreak += 1;
+				if (currentStreak > bestStreak) {
+					bestStreak = currentStreak;
+				}
 			} else {
 				currentStreak = 0;
 			}
 		}
 
-		return { bestStreak, catches, ditches };
+		return { bestStreak, catches, ditches, wonRings };
 	}),
 });
 

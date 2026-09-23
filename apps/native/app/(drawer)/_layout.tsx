@@ -163,6 +163,24 @@ function DrawerLayout() {
 					headerTitle: "Shop",
 				}}
 			/>
+			<Drawer.Screen
+				name="house"
+				options={{
+					drawerIcon: ({ size, color, focused }) => (
+						<Ionicons
+							color={focused ? color : themeColorForeground}
+							name="home-outline"
+							size={size}
+						/>
+					),
+					drawerLabel: ({ color, focused }) => (
+						<Text style={{ color: focused ? color : themeColorForeground }}>
+							My House
+						</Text>
+					),
+					headerTitle: "My House",
+				}}
+			/>
 		</Drawer>
 	);
 }

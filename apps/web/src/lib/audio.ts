@@ -77,3 +77,126 @@ export function playMiss(): void {
 	tone(392, { delay: 0, duration: 0.3, type: "triangle", volume: 0.2 });
 	tone(311.13, { delay: 0.18, duration: 0.4, type: "triangle", volume: 0.18 });
 }
+
+/**
+ * Door-specific ring sounds — every door design announces itself differently.
+ * A brass bell ding-dongs, a cottage knocker knocks, a Victorian crank
+ * clatters, a modern touch pad pings, and a neon bell glides.
+ */
+export function playRingSound(
+	bellStyle: "bell" | "knocker" | "crank" | "touch" | "neon",
+	cameraDoorbell = false
+): void {
+	if (cameraDoorbell) {
+		playDingDong();
+		return;
+	}
+	switch (bellStyle) {
+		case "knocker":
+			playKnock();
+			break;
+		case "crank":
+			playCrank();
+			break;
+		case "touch":
+			playTouchPing();
+			break;
+		case "neon":
+			playNeonGlide();
+			break;
+		default:
+			playDingDong();
+	}
+}
+
+/** Two low, heavy knocks — the cottage iron knocker. */
+function playKnock(): void {
+	tone(175, { delay: 0, duration: 0.12, type: "sine", volume: 0.5 });
+	tone(150, { delay: 0.28, duration: 0.16, type: "sine", volume: 0.5 });
+}
+
+/** A mechanical clatter — an antique crank bell being turned. */
+function playCrank(): void {
+	const clicks = [0, 0.07, 0.16, 0.24, 0.37];
+	for (const [index, delay] of clicks.entries()) {
+		tone(620 + (index % 2) * 190, {
+			delay,
+			duration: 0.06,
+			type: "square",
+			volume: 0.1,
+		});
+	}
+}
+
+/** A clean, soft digital ping — the modern touch bell. */
+function playTouchPing(): void {
+	tone(1046.5, { delay: 0, duration: 0.32, type: "sine", volume: 0.22 });
+	tone(1567.98, { delay: 0.09, duration: 0.22, type: "sine", volume: 0.1 });
+}
+
+/** A rising synth glide — the neon night doorbell. */
+function playNeonGlide(): void {
+	const context = getAudioContext();
+	if (!context) {
+		return;
+	}
+	const start = context.currentTime;
+	const oscillator = context.createOscillator();
+	const gain = context.createGain();
+	oscillator.type = "sawtooth";
+	oscillator.frequency.setValueAtTime(220, start);
+	oscillator.frequency.exponentialRampToValueAtTime(880, start + 0.35);
+	gain.gain.setValueAtTime(0.0001, start);
+	gain.gain.exponentialRampToValueAtTime(0.13, start + 0.05);
+	gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.48);
+	oscillator.connect(gain);
+	gain.connect(context.destination);
+	oscillator.start(start);
+	oscillator.stop(start + 0.52);
+}
+
+/** A warm, low two-tone that echoes — the deep doorbell. */
+function playDeepBell(): void {
+	tone(392, { delay: 0, duration: 0.7, type: "sine", volume: 0.3 });
+	tone(293.66, { delay: 0.32, duration: 0.95, type: "sine", volume: 0.3 });
+}
+
+/** A cheerful rising marimba riff. */
+function playMarimba(): void {
+	const notes = [523.25, 659.25, 783.99, 1046.5];
+	for (const [index, note] of notes.entries()) {
+		tone(note, {
+			delay: index * 0.1,
+			duration: 0.3,
+			type: "triangle",
+			volume: 0.2,
+		});
+	}
+}
+
+/** Plays a ring sound by its catalog id (dingdong, knock, crank, neon, deepbell, marimba). */
+export function playSoundById(soundId: string, cameraDoorbell = false): void {
+	if (cameraDoorbell) {
+		playDingDong();
+		return;
+	}
+	switch (soundId) {
+		case "knock":
+			playKnock();
+			break;
+		case "crank":
+			playCrank();
+			break;
+		case "neon":
+			playNeonGlide();
+			break;
+		case "deepbell":
+			playDeepBell();
+			break;
+		case "marimba":
+			playMarimba();
+			break;
+		default:
+			playDingDong();
+	}
+}

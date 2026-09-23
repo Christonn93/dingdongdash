@@ -6,9 +6,9 @@ Version 1.0 — Draft for development, written for use with AI coding agents (Cl
 
 DingDongDitch is a real-time social mobile game. User A "rings the bell" on User B's profile. User B has a fixed countdown (default 30 seconds) to open the app and "answer the door" to see who rang. If User B answers in time, User B "catches" User A. If the timer expires, User A "ditches" successfully.
 
-- **Catch (User B opens in time):** User B +10 points, User A −5 points.
-- **Ditch (User B fails to open in time):** User B −10 points.
-- All users start with 1000 points.
+- **Catch (User B opens in time):** User B +10 points, User A −5 points (User A's penalty is capped by the rolling 24h loss floor).
+- **Ditch (User B fails to open in time):** User B −10 points (capped by the rolling 24h loss floor), User A +10 points.
+- All users start with 100 points.
 - Points can be topped up with real-money in-app purchases (pay-to-win economy, not redeemable for cash — see Section 6).
 - Users can spend real money on consumable items (e.g., time-extension shields) that improve their odds of catching or ditching.
 - Global and friends-based leaderboards ranked by point total.
@@ -22,7 +22,7 @@ DingDongDitch is a real-time social mobile game. User A "rings the bell" on User
 4. User B taps "Open Door" before the countdown ends.
 5. Server resolves the event:
    - If opened before expiry → `CAUGHT`. User B +10, User A −5.
-   - If expiry passes with no action → `DITCHED`. User B −10.
+   - If expiry passes with no action → `DITCHED`. User B −10, User A +10.
 6. Result is written to the points ledger, both users' totals update, leaderboard recalculates.
 7. Both users see a result screen (who rang, outcome, new point totals).
 
@@ -57,7 +57,7 @@ User
   displayName   string
   phoneHash     string, indexed        -- for contact-based friend matching
   facebookId    string, nullable
-  points        int, default 1000       -- denormalized cache, source of truth is ledger
+  points        int, default 100       -- denormalized cache, source of truth is ledger
   createdAt     timestamp
   deviceTokens  DeviceToken[]
 
@@ -92,7 +92,7 @@ PointsLedgerEntry
   userId        uuid, fk -> User
   ringId        uuid, fk -> Ring, nullable
   amount        int                      -- positive or negative
-  reason        enum('catch','ditch_penalty','ditch_ring_penalty','purchase','signup_bonus','adjustment')
+  reason        enum('catch','ditch_penalty','ditch_ring_penalty','ditch_reward','purchase','signup_bonus','adjustment')
   createdAt     timestamp
   -- append-only, immutable. User.points is always derivable as SUM(amount) per user.
 

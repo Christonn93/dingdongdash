@@ -13,10 +13,15 @@ import { BellBandit } from "./caught-celebration";
 
 const POLL_MS = 4000;
 
+function formatDelta(delta: number): string {
+	return `${delta > 0 ? "+" : "−"}${Math.abs(delta)}`;
+}
+
 /**
  * Watches rings the current user *sent* and, when one resolves, shows a fun
  * animated toast — the "you got caught" (loss) or "you caught them" (win)
- * moment.
+ * moment. The point amount is read from the ledger via `getHistory.delta`, so
+ * it always matches what the server actually granted.
  */
 export function RingResultToast() {
 	const { data: session } = authClient.useSession();
@@ -32,7 +37,13 @@ export function RingResultToast() {
 	);
 
 	useEffect(() => {
-		const entries = history.data?.entries ?? [];
+		if (!meId || history.data === undefined) {
+			return;
+		}
+		const entries = history.data.entries ?? [];
+		// Seed only once the first real payload has arrived — otherwise a ring
+		// that resolved in a previous session gets treated as brand new and a
+		// phantom toast fires on every page load.
 		// biome-ignore lint/suspicious/noUnnecessaryConditions: ref is mutated in the effect below
 		if (!initialized.current) {
 			initialized.current = true;
@@ -53,15 +64,24 @@ export function RingResultToast() {
 		}
 		seen.current.add(latestSent.id);
 		if (latestSent.status === "caught") {
-			toast.custom((id) => <CaughtToast onClose={() => toast.dismiss(id)} />, {
-				duration: 5000,
-			});
+			toast.custom(
+				(id) => (
+					<CaughtToast
+						delta={latestSent.delta}
+						onClose={() => toast.dismiss(id)}
+					/>
+				),
+				{ duration: 5000 }
+			);
 		} else {
 			toast.custom(
-				(id) => <CaughtThemToast onClose={() => toast.dismiss(id)} />,
-				{
-					duration: 5000,
-				}
+				(id) => (
+					<CaughtThemToast
+						delta={latestSent.delta}
+						onClose={() => toast.dismiss(id)}
+					/>
+				),
+				{ duration: 5000 }
 			);
 		}
 	}, [history.data, meId]);
@@ -69,7 +89,13 @@ export function RingResultToast() {
 	return null;
 }
 
-function CaughtToast({ onClose }: { onClose: () => void }) {
+function CaughtToast({
+	delta,
+	onClose,
+}: {
+	delta: number;
+	onClose: () => void;
+}) {
 	const reduceMotion = useReducedMotion();
 	return (
 		<ResultToastCard onClose={onClose} reduceMotion={reduceMotion}>
@@ -89,7 +115,7 @@ function CaughtToast({ onClose }: { onClose: () => void }) {
 						You got caught!
 					</p>
 					<p className="text-muted-foreground text-sm">
-						They opened the door in time. −5 points.
+						They opened the door in time. {formatDelta(delta)} points.
 					</p>
 				</div>
 			</div>
@@ -98,7 +124,13 @@ function CaughtToast({ onClose }: { onClose: () => void }) {
 }
 
 /** The ringer's win: the target never opened the door. Big, cheerful, loud. */
-function CaughtThemToast({ onClose }: { onClose: () => void }) {
+function CaughtThemToast({
+	delta,
+	onClose,
+}: {
+	delta: number;
+	onClose: () => void;
+}) {
 	const reduceMotion = useReducedMotion();
 
 	useEffect(() => {
@@ -125,7 +157,7 @@ function CaughtThemToast({ onClose }: { onClose: () => void }) {
 						You caught them!
 					</p>
 					<p className="text-muted-foreground text-sm">
-						They never made it to the door. +10 points.
+						They never made it to the door. {formatDelta(delta)} points.
 					</p>
 				</div>
 			</div>
@@ -134,7 +166,7 @@ function CaughtThemToast({ onClose }: { onClose: () => void }) {
 }
 
 /** A triumphant doorbell with a party hat and confetti. */
-function DoorbellChamp() {
+export function DoorbellChamp() {
 	return (
 		<svg
 			aria-hidden="true"

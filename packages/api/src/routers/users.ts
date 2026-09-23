@@ -6,7 +6,7 @@ import {
 	user,
 } from "@dingdongdash/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import z from "zod";
 
 import { protectedProcedure, router } from "../index";
@@ -32,19 +32,28 @@ export const usersRouter = router({
 		if (row.timeShieldArmed) {
 			return { armed: true };
 		}
-		if (row.timeShields < 1) {
-			throw new TRPCError({
-				code: "PRECONDITION_FAILED",
-				message: "You don't have any Time Shields",
-			});
-		}
-		await db
+		// Atomic claim: the WHERE clause re-checks both conditions so two
+		// concurrent taps can't both spend the last shield or double-arm.
+		const claimed = await db
 			.update(user)
 			.set({
 				timeShieldArmed: true,
 				timeShields: sql`${user.timeShields} - 1`,
 			})
-			.where(eq(user.id, session.user.id));
+			.where(
+				and(
+					eq(user.id, session.user.id),
+					eq(user.timeShieldArmed, false),
+					gte(user.timeShields, 1)
+				)
+			)
+			.returning({ id: user.id });
+		if (claimed.length === 0) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message: "You don't have any Time Shields",
+			});
+		}
 		return { armed: true };
 	}),
 

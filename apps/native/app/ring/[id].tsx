@@ -1,3 +1,7 @@
+import {
+	DOOR_SKINS,
+	type DoorSkinTheme,
+} from "@dingdongdash/api/lib/door-catalog";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
@@ -17,14 +21,13 @@ import Animated, {
 	ZoomIn,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import { ConfettiBurst } from "@/components/door/confetti";
 import { DoorScene } from "@/components/door/door";
 import { DoorbellButton } from "@/components/door/doorbell-button";
 import { PointsBadge } from "@/components/door/points-badge";
 import { ShakeView } from "@/components/game/shake";
 import { useCatchStreak } from "@/hooks/use-catch-streak";
-import { playSound } from "@/lib/sound";
+import { playSound, playSoundById } from "@/lib/sound";
 import { trpc } from "@/utils/trpc";
 
 type RingPhase = "ringing" | "caught" | "ditched" | "checking";
@@ -58,10 +61,14 @@ export default function RingScreen() {
 	const [now, setNow] = useState(Date.now());
 	const [phase, setPhase] = useState<RingPhase>("checking");
 	const [name, setName] = useState("Someone");
+	const [resultDelta, setResultDelta] = useState(0);
 	const resolveFired = useRef(false);
 
 	const me = useQuery(trpc.users.me.queryOptions());
 	const points = me.data?.user.points ?? 1000;
+	const skin =
+		DOOR_SKINS.find((item) => item.id === me.data?.user.doorSkinId) ??
+		DOOR_SKINS[0];
 
 	const active = useQuery(
 		trpc.rings.getActive.queryOptions(undefined, { refetchInterval: 2000 })
@@ -74,15 +81,16 @@ export default function RingScreen() {
 	}, []);
 
 	useEffect(() => {
-		if (ring?.ringer.name) {
+		if (ring?.ringer?.name) {
 			setName(ring.ringer.name);
 		}
-	}, [ring?.ringer.name]);
+	}, [ring?.ringer?.name]);
 
 	const answer = useMutation(
 		trpc.rings.answer.mutationOptions({
 			onSuccess: (data) => {
 				setPhase(data.outcome === "caught" ? "caught" : "ditched");
+				setResultDelta(data.deltas.target);
 				const haptic =
 					data.outcome === "caught"
 						? Haptics.NotificationFeedbackType.Success
@@ -109,9 +117,16 @@ export default function RingScreen() {
 	useEffect(() => {
 		if (phase === "checking" && active.data && ring) {
 			setPhase("ringing");
-			playSound(shielded ? "shield" : "chime");
+			if (shielded) {
+				playSound("shield");
+			} else {
+				playSoundById(
+					me.data?.user.ringSoundId ?? "dingdong",
+					me.data?.user.cameraDoorbell ?? false
+				);
+			}
 		}
-	}, [active.data, phase, ring, shielded]);
+	}, [active.data, me.data, phase, ring, shielded]);
 
 	const lastTick = useRef(secondsLeft);
 	useEffect(() => {
@@ -171,6 +186,7 @@ export default function RingScreen() {
 				{phase === "checking" ? <CheckingView colors={colors} /> : null}
 				{phase === "ringing" ? (
 					<RingingView
+						cameraDoorbell={me.data?.user.cameraDoorbell ?? false}
 						colors={colors}
 						countdownFraction={countdownFraction}
 						disabled={answer.isPending}
@@ -178,15 +194,21 @@ export default function RingScreen() {
 						onOpen={handleOpenDoor}
 						secondsLeft={secondsLeft}
 						shielded={shielded}
+						skin={skin.theme}
+						spyCamera={me.data?.user.spyCamera ?? false}
 					/>
 				) : null}
 				{phase === "caught" || phase === "ditched" ? (
 					<ResultView
+						cameraDoorbell={me.data?.user.cameraDoorbell ?? false}
 						colors={colors}
 						name={name}
 						onContinue={handleClose}
 						phase={phase}
 						points={points}
+						resultDelta={resultDelta}
+						skin={skin.theme}
+						spyCamera={me.data?.user.spyCamera ?? false}
 					/>
 				) : null}
 			</View>
@@ -258,6 +280,9 @@ function RingingView({
 	countdownFraction,
 	disabled,
 	shielded,
+	cameraDoorbell,
+	skin,
+	spyCamera,
 	onOpen,
 }: {
 	colors: SceneColors;
@@ -266,6 +291,9 @@ function RingingView({
 	countdownFraction: number;
 	disabled: boolean;
 	shielded: boolean;
+	cameraDoorbell: boolean;
+	skin: DoorSkinTheme;
+	spyCamera: boolean;
 	onOpen: () => void;
 }) {
 	return (
@@ -321,11 +349,14 @@ function RingingView({
 			</View>
 
 			<DoorScene
+				cameraDoorbell={cameraDoorbell}
 				countdownFraction={countdownFraction}
 				disabled={disabled}
 				onOpen={onOpen}
 				phase="ringing"
 				size={340}
+				skin={skin}
+				spyCamera={spyCamera}
 			/>
 
 			<Text
@@ -349,17 +380,30 @@ function ResultView({
 	name,
 	phase,
 	points,
+	resultDelta,
+	cameraDoorbell,
+	skin,
+	spyCamera,
 	onContinue,
 }: {
 	colors: SceneColors;
 	name: string;
 	phase: "caught" | "ditched";
 	points: number;
+	resultDelta: number;
+	cameraDoorbell: boolean;
+	skin: DoorSkinTheme;
+	spyCamera: boolean;
 	onContinue: () => void;
 }) {
 	const caught = phase === "caught";
-	const resultDelta = caught ? 10 : -10;
 	const { streak } = useCatchStreak();
+	let subtitle = `This ring already resolved. Ring ${name} back.`;
+	if (caught) {
+		subtitle = `${name} ditched you — but you beat them to the door. You +10, they −5.`;
+	} else if (resultDelta < 0) {
+		subtitle = `${name} ditched you. You ${resultDelta}. Ring them back.`;
+	}
 
 	return (
 		<Animated.View
@@ -369,10 +413,13 @@ function ResultView({
 			<ShakeView intensity={7} shakeKey={phase}>
 				<View className="relative">
 					<DoorScene
+						cameraDoorbell={cameraDoorbell}
 						disabled
 						onOpen={onContinue}
 						phase={caught ? "open" : "closed"}
 						size={340}
+						skin={skin}
+						spyCamera={spyCamera}
 					/>
 					{caught ? <ConfettiBurst /> : null}
 				</View>
@@ -405,9 +452,7 @@ function ResultView({
 						className="mt-1 mb-5 text-center text-sm"
 						style={{ color: colors.muted }}
 					>
-						{caught
-							? `${name} ditched you — but you beat them to the door. You +10, they −5.`
-							: `${name} ditched you. You −10. Ring them back.`}
+						{subtitle}
 					</Text>
 
 					<DoorbellButton

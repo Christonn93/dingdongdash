@@ -449,6 +449,7 @@ const REASON_META: Record<
 	catch: { icon: "checkmark-circle", label: "Catch" },
 	daily_bonus: { icon: "gift", label: "Daily bonus" },
 	ditch_penalty: { icon: "close-circle", label: "Ditched" },
+	ditch_reward: { icon: "trophy-outline", label: "Caught them" },
 	ditch_ring_penalty: { icon: "log-out-outline", label: "Ringer ditched" },
 	purchase: { icon: "cart-outline", label: "Purchase" },
 	signup_bonus: { icon: "gift-outline", label: "Welcome bonus" },

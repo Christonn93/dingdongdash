@@ -32,6 +32,7 @@ export default function ShopScreen() {
 					variant: "success",
 				});
 				inventory.refetch();
+				me.refetch();
 			},
 		})
 	);

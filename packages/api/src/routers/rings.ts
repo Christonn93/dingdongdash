@@ -3,14 +3,19 @@ import {
 	RING_DURATION_MS,
 	TIME_SHIELD_EXTENSION_MS,
 } from "@dingdongdash/db/game";
-import { friendship, ring, user } from "@dingdongdash/db/schema";
+import { friendship, pointsLedger, ring, user } from "@dingdongdash/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, gt, lt, or } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import z from "zod";
 
 import { protectedProcedure, router } from "../index";
 import { notifyUser } from "../lib/notifications";
-import { applyCatch, reconcileUserRings, resolveIfExpired } from "../lib/rings";
+import {
+	applyCatchCore,
+	applyDitchCore,
+	isExpired,
+	reconcileUserRings,
+} from "../lib/rings";
 
 const RING_PAGE_SIZE = 20;
 
@@ -21,36 +26,74 @@ export const ringsRouter = router({
 			const { db, session } = ctx;
 			const me = session.user.id;
 
-			const [ringRow] = await db
+			const [fresh] = await db
 				.select()
 				.from(ring)
-				.where(and(eq(ring.id, input.ringId), eq(ring.targetId, me)))
+				.where(eq(ring.id, input.ringId))
 				.limit(1);
-			if (!ringRow) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Ring not found" });
+			if (!fresh || fresh.targetId !== me) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Ring not found",
+				});
 			}
 
-			const status = await resolveIfExpired(db, ringRow);
-			if (status === null) {
-				await applyCatch(db, ringRow);
-				await notifyUser(ctx, ringRow.ringerId, "caught", {
-					body: "They opened the door in time. −5 points.",
-					data: { outcome: "caught", ringId: ringRow.id, type: "ring_result" },
-					title: "You got caught!",
-				});
-				return { outcome: "caught" as const, ring: ringRow };
+			if (fresh.status !== "pending") {
+				return {
+					deltas: { ringer: 0, target: 0 },
+					outcome: fresh.status,
+					ring: fresh,
+				};
 			}
-			if (status === "caught") {
-				return { outcome: "caught" as const, ring: ringRow };
+
+			// The resolution functions CAS the ring from "pending", so a poll or
+			// duplicate tap can't race a second payout — the winner applies
+			// points exactly once, and the loser sees `applied: false`.
+			const expired = isExpired(fresh);
+			const outcome = expired ? "ditched" : "caught";
+			const result = expired
+				? await applyDitchCore(db, fresh)
+				: await applyCatchCore(db, fresh);
+
+			if (result.applied) {
+				if (outcome === "caught") {
+					await notifyUser(ctx, fresh.ringerId, "caught", {
+						body: `They opened the door in time. ${formatDelta(result.deltas.ringer)} points.`,
+						data: {
+							outcome: "caught",
+							ringId: fresh.id,
+							type: "ring_result",
+						},
+						title: "You got caught!",
+					});
+				} else {
+					await notifyUser(ctx, me, "ditched", {
+						body: `The timer ran out. ${formatDelta(result.deltas.target)} points.`,
+						data: {
+							outcome: "ditched",
+							ringId: fresh.id,
+							type: "ring_result",
+						},
+						title: "You were ditched",
+					});
+				}
+				return {
+					deltas: result.deltas,
+					outcome,
+					ring: { ...fresh, status: outcome },
+				};
 			}
-			await notifyUser(ctx, me, "ditched", {
-				body: "The timer ran out. −10 points.",
-				data: { outcome: "ditched", ringId: ringRow.id, type: "ring_result" },
-				title: "You were ditched",
-			});
+
+			// A concurrent poll already resolved this ring — report its true state.
+			const [current] = await db
+				.select()
+				.from(ring)
+				.where(eq(ring.id, input.ringId))
+				.limit(1);
 			return {
-				outcome: "ditched" as const,
-				ring: { ...ringRow, status: "ditched" },
+				deltas: { ringer: 0, target: 0 },
+				outcome: current?.status ?? fresh.status,
+				ring: current ?? fresh,
 			};
 		}),
 	create: protectedProcedure
@@ -100,6 +143,7 @@ export const ringsRouter = router({
 			const now = Date.now();
 			const [target] = await db
 				.select({
+					cameraDoorbell: user.cameraDoorbell,
 					dndEnabled: user.dndEnabled,
 					dndFrom: user.dndFrom,
 					dndTo: user.dndTo,
@@ -118,61 +162,101 @@ export const ringsRouter = router({
 
 			const muted = await isMuted(db, input.targetUserId, me);
 
+			// Claim the Time Shield with a conditional update so two simultaneous
+			// rings can't both spend the same armed shield or extend twice. The
+			// claim is a single atomic UPDATE; the ring insert follows.
 			const shieldActive = target?.timeShieldArmed === true;
-			const durationMs = shieldActive
+			const claimed = shieldActive
+				? await db
+						.update(user)
+						.set({ timeShieldArmed: false })
+						.where(
+							and(
+								eq(user.id, input.targetUserId),
+								eq(user.timeShieldArmed, true)
+							)
+						)
+						.returning({ id: user.id })
+				: [];
+			const shieldExtends = claimed.length > 0;
+			const duration = shieldExtends
 				? RING_DURATION_MS + TIME_SHIELD_EXTENSION_MS
 				: RING_DURATION_MS;
 
 			const newRing: typeof ring.$inferInsert = {
-				durationMs,
-				expiresAt: new Date(now + durationMs),
+				durationMs: duration,
+				expiresAt: new Date(now + duration),
 				id: crypto.randomUUID(),
 				ringerId: me,
 				targetId: input.targetUserId,
 			};
 			await db.insert(ring).values(newRing);
-
-			if (shieldActive) {
-				await db
-					.update(user)
-					.set({ timeShieldArmed: false })
-					.where(eq(user.id, input.targetUserId));
-			}
+			const ringId = newRing.id;
 
 			if (!muted) {
+				const revealRinger = target?.cameraDoorbell === true;
+				const body = revealRinger
+					? `${session.user.name} is at your door — answer within 30 seconds or they ditch you.`
+					: "Someone's at your door. Answer within 30 seconds or they ditch you.";
 				await notifyUser(ctx, input.targetUserId, "ring", {
-					body: "Someone's at your door. Answer within 30 seconds or they ditch you.",
-					data: { ringId: newRing.id, type: "ring" },
-					title: "The doorbell is ringing",
+					body,
+					data: {
+						anonymous: !revealRinger,
+						ringId,
+						type: "ring",
+					},
+					title: revealRinger
+						? `${session.user.name} is at your door`
+						: "The doorbell is ringing",
 				});
 			}
 
-			return { ringId: newRing.id };
+			return { ringId };
 		}),
 
 	getActive: protectedProcedure.query(async ({ ctx }) => {
 		const { db, session } = ctx;
 		await reconcileUserRings(db, session.user.id);
 
-		const pending = await db
-			.select({
-				createdAt: ring.createdAt,
-				durationMs: ring.durationMs,
-				expiresAt: ring.expiresAt,
-				id: ring.id,
-				ringer: {
-					avatarId: user.avatarId,
-					id: user.id,
-					image: user.image,
-					name: user.name,
-				},
-				ringerId: ring.ringerId,
-			})
-			.from(ring)
-			.innerJoin(user, eq(ring.ringerId, user.id))
-			.where(
-				and(eq(ring.targetId, session.user.id), eq(ring.status, "pending"))
-			);
+		// Without a camera doorbell, ringers stay anonymous: the target sees
+		// "Someone is at your door" instead of the ringer's name and avatar.
+		const [target] = await db
+			.select({ cameraDoorbell: user.cameraDoorbell })
+			.from(user)
+			.where(eq(user.id, session.user.id))
+			.limit(1);
+		const revealRinger = target?.cameraDoorbell === true;
+
+		const base = {
+			createdAt: ring.createdAt,
+			durationMs: ring.durationMs,
+			expiresAt: ring.expiresAt,
+			id: ring.id,
+			ringerId: ring.ringerId,
+		};
+		const where = and(
+			eq(ring.targetId, session.user.id),
+			eq(ring.status, "pending")
+		);
+
+		const pending = revealRinger
+			? await db
+					.select({
+						...base,
+						ringer: {
+							avatarId: user.avatarId,
+							id: user.id,
+							image: user.image,
+							name: user.name,
+						},
+					})
+					.from(ring)
+					.innerJoin(user, eq(ring.ringerId, user.id))
+					.where(where)
+			: await db
+					.select({ ...base, ringer: sql<null>`null` })
+					.from(ring)
+					.where(where);
 
 		return { rings: pending };
 	}),
@@ -226,12 +310,57 @@ export const ringsRouter = router({
 			const page = rows.slice(0, input.limit);
 			const last = page.at(-1);
 
+			// Attach the requesting user's actual point delta per ring (summed
+			// from the ledger) so the UI never hardcodes +10/−10.
+			const deltaByRing = await pointsDeltaByRing(
+				db,
+				session.user.id,
+				page.map((entry) => entry.id)
+			);
+			const entries = page.map((entry) => ({
+				...entry,
+				delta: deltaByRing.get(entry.id) ?? 0,
+			}));
+
 			return {
-				entries: page,
+				entries,
 				nextCursor: hasMore && last ? encodeCursor(last) : null,
 			};
 		}),
 });
+
+async function pointsDeltaByRing(
+	db: Database,
+	userId: string,
+	ringIds: string[]
+): Promise<Map<string, number>> {
+	if (ringIds.length === 0) {
+		return new Map();
+	}
+	const ledgerRows = await db
+		.select({ amount: pointsLedger.amount, ringId: pointsLedger.ringId })
+		.from(pointsLedger)
+		.where(
+			and(
+				eq(pointsLedger.userId, userId),
+				inArray(pointsLedger.ringId, ringIds)
+			)
+		);
+	const deltaByRing = new Map<string, number>();
+	for (const row of ledgerRows) {
+		if (row.ringId) {
+			deltaByRing.set(
+				row.ringId,
+				(deltaByRing.get(row.ringId) ?? 0) + row.amount
+			);
+		}
+	}
+	return deltaByRing;
+}
+
+function formatDelta(delta: number): string {
+	return `${delta > 0 ? "+" : "−"}${Math.abs(delta)}`;
+}
 
 function isAcceptedFriend(
 	db: Database,

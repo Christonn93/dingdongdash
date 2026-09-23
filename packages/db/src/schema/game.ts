@@ -23,8 +23,10 @@ export const ledgerReason = [
 	"catch",
 	"ditch_penalty",
 	"ditch_ring_penalty",
+	"ditch_reward",
 	"daily_bonus",
 	"purchase",
+	"shop_purchase",
 	"adjustment",
 ] as const;
 export const devicePlatform = ["ios", "android", "web"] as const;
@@ -120,6 +122,8 @@ export const pointsLedger = sqliteTable(
 	{
 		amount: integer("amount").notNull(),
 		createdAt: integer("created_at", timestamp).default(now).notNull(),
+		/** UTC calendar day (YYYY-MM-DD) for daily bonuses — the dedupe key. */
+		day: text("day"),
 		id: text("id").primaryKey(),
 		reason: text("reason", { enum: ledgerReason }).notNull(),
 		ringId: text("ring_id").references(() => ring.id, { onDelete: "set null" }),
@@ -130,6 +134,11 @@ export const pointsLedger = sqliteTable(
 	(table) => [
 		index("points_ledger_userId_idx").on(table.userId),
 		index("points_ledger_ringId_idx").on(table.ringId),
+		uniqueIndex("points_ledger_ring_user_unique").on(
+			table.ringId,
+			table.userId
+		),
+		uniqueIndex("points_ledger_user_day_unique").on(table.userId, table.day),
 	]
 );
 
@@ -191,12 +200,54 @@ export const purchase = sqliteTable(
 	(table) => [index("purchase_userId_idx").on(table.userId)]
 );
 
+/** Door skins a user has bought with points (the classic skin is free). */
+export const ownedDoorSkin = sqliteTable(
+	"owned_door_skin",
+	{
+		createdAt: integer("created_at", timestamp).default(now).notNull(),
+		doorSkinId: text("door_skin_id").notNull(),
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		uniqueIndex("owned_door_skin_user_skin_unique").on(
+			table.userId,
+			table.doorSkinId
+		),
+		index("owned_door_skin_userId_idx").on(table.userId),
+	]
+);
+
+/** Ring sounds a user has bought with points (the classic ding-dong is free). */
+export const ownedRingSound = sqliteTable(
+	"owned_ring_sound",
+	{
+		createdAt: integer("created_at", timestamp).default(now).notNull(),
+		id: text("id").primaryKey(),
+		soundId: text("sound_id").notNull(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		uniqueIndex("owned_ring_sound_user_sound_unique").on(
+			table.userId,
+			table.soundId
+		),
+		index("owned_ring_sound_userId_idx").on(table.userId),
+	]
+);
+
 export const gameRelations = defineRelationsPart(
 	{
 		deviceToken,
 		friendship,
 		invite,
 		notificationPreference,
+		ownedDoorSkin,
+		ownedRingSound,
 		pointsLedger,
 		purchase,
 		ring,
@@ -228,6 +279,18 @@ export const gameRelations = defineRelationsPart(
 		notificationPreference: {
 			user: r.one.user({
 				from: r.notificationPreference.userId,
+				to: r.user.id,
+			}),
+		},
+		ownedDoorSkin: {
+			user: r.one.user({
+				from: r.ownedDoorSkin.userId,
+				to: r.user.id,
+			}),
+		},
+		ownedRingSound: {
+			user: r.one.user({
+				from: r.ownedRingSound.userId,
 				to: r.user.id,
 			}),
 		},
@@ -273,6 +336,14 @@ export const gameRelations = defineRelationsPart(
 			ledgerEntries: r.many.pointsLedger({
 				from: r.user.id,
 				to: r.pointsLedger.userId,
+			}),
+			ownedDoorSkins: r.many.ownedDoorSkin({
+				from: r.user.id,
+				to: r.ownedDoorSkin.userId,
+			}),
+			ownedRingSounds: r.many.ownedRingSound({
+				from: r.user.id,
+				to: r.ownedRingSound.userId,
 			}),
 			purchases: r.many.purchase({
 				from: r.user.id,

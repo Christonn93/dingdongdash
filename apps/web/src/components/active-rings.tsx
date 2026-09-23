@@ -1,20 +1,25 @@
+import { DOOR_SKINS } from "@dingdongdash/api/lib/door-catalog";
 import { Button } from "@dingdongdash/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-
-import { playDingDong, playMiss, playSparkle } from "@/lib/audio";
+import { playDingDong, playMiss, playSoundById, playSparkle } from "@/lib/audio";
 import { celebrate, celebrateFromSides } from "@/lib/confetti";
 import { spring } from "@/lib/motion";
 import { trpc } from "@/utils/trpc";
 
 import { DoorInteraction, type DoorVisualState } from "./door-interaction";
+import { DoorbellChamp } from "./ring-result-toast";
 
 const POLL_MS = 3000;
 
 type AnswerOutcome = "caught" | "ditched";
+
+function formatDelta(delta: number): string {
+	return `${delta > 0 ? "+" : "−"}${Math.abs(delta)}`;
+}
 
 export function ActiveRings() {
 	const [now, setNow] = useState(Date.now());
@@ -22,6 +27,13 @@ export function ActiveRings() {
 	const [outcomes, setOutcomes] = useState<Map<string, AnswerOutcome>>(
 		() => new Map()
 	);
+	const seenIncoming = useRef<Set<string>>(new Set());
+	const seeded = useRef(false);
+
+	const me = useQuery(trpc.users.me.queryOptions());
+	const skin =
+		DOOR_SKINS.find((item) => item.id === me.data?.user.doorSkinId) ??
+		DOOR_SKINS[0];
 
 	useEffect(() => {
 		const timer = setInterval(() => setNow(Date.now()), 500);
@@ -34,20 +46,63 @@ export function ActiveRings() {
 		})
 	);
 
+	// Alert when a NEW ring arrives while the dashboard is open: ding-dong,
+	// an animated toast, a browser notification (if permission is granted) and
+	// a brief title flash. Rings already on screen at mount are not re-announced.
+	useEffect(() => {
+		const incoming = active.data?.rings ?? [];
+		// biome-ignore lint/suspicious/noUnnecessaryConditions: ref is mutated in the effect below
+		if (!seeded.current) {
+			seeded.current = true;
+			for (const ringItem of incoming) {
+				seenIncoming.current.add(ringItem.id);
+			}
+			return;
+		}
+		for (const ringItem of incoming) {
+			if (seenIncoming.current.has(ringItem.id)) {
+				continue;
+			}
+			seenIncoming.current.add(ringItem.id);
+			announceIncomingRing(
+				ringItem.ringer?.name ?? "Someone",
+				me.data?.user.ringSoundId ?? "dingdong",
+				me.data?.user.cameraDoorbell ?? false
+			);
+		}
+	}, [active.data, me.data]);
+
 	const answer = useMutation(
 		trpc.rings.answer.mutationOptions({
 			onError: (error) => toast.error(error.message),
 			onSuccess: (result, { ringId }) => {
 				const outcome = result.outcome as AnswerOutcome;
+				const targetDelta = result.deltas.target;
+				const incoming = active.data?.rings.find((r) => r.id === ringId);
 				setOutcomes((prev) => new Map(prev).set(ringId, outcome));
 				if (outcome === "caught") {
 					celebrate();
 					celebrateFromSides();
 					playSparkle();
-					toast.success("You caught them! +10 points");
+					toast.custom(
+						(id) => (
+							<YouCaughtThemToast
+								delta={targetDelta}
+								name={incoming?.ringer?.name ?? "They"}
+								onClose={() => toast.dismiss(id)}
+							/>
+						),
+						{ duration: 5000 }
+					);
 				} else {
 					playMiss();
-					toast.error("Too late — the ringer ditched you. −10 points");
+					if (targetDelta < 0) {
+						toast.error(
+							`Too late — the ringer ditched you. ${formatDelta(targetDelta)} points`
+						);
+					} else {
+						toast.error("This ring already resolved.");
+					}
 				}
 				setTimeout(() => {
 					setOutcomes((prev) => {
@@ -94,14 +149,17 @@ export function ActiveRings() {
 						transition={{ ...spring, delay: index * 0.08 }}
 					>
 						<DoorInteraction
+							cameraDoorbell={me.data?.user.cameraDoorbell ?? false}
 							disabled={state === "expired"}
 							durationMs={incoming.durationMs}
 							isAnswering={isOpening}
 							onAnswer={() => handleAnswer(incoming.id)}
 							secondsRemaining={remainingMs}
+							spyCamera={me.data?.user.spyCamera ?? false}
 							state={state}
-							visitorAvatarId={incoming.ringer.avatarId}
-							visitorName={incoming.ringer.name}
+							theme={skin.theme}
+							visitorAvatarId={incoming.ringer?.avatarId}
+							visitorName={incoming.ringer?.name}
 						/>
 					</motion.div>
 				);
@@ -130,6 +188,128 @@ function doorVisualState({
 		return "expired";
 	}
 	return "incoming";
+}
+
+let titleFlashTimer: number | undefined;
+
+function announceIncomingRing(
+	name: string,
+	soundId = "dingdong",
+	cameraDoorbell = false
+): void {
+	playSoundById(soundId, cameraDoorbell);
+	toast.custom(
+		(id) => <IncomingRingToast name={name} onClose={() => toast.dismiss(id)} />,
+		{ duration: 8000 }
+	);
+
+	if ("Notification" in window && Notification.permission === "granted") {
+		try {
+			const notification = new Notification("The doorbell is ringing", {
+				body: `${name} is at your door — answer in 30 seconds or they ditch you.`,
+			});
+			notification.onclick = () => {
+				window.focus();
+			};
+		} catch {
+			// Some browsers require a service worker to show notifications.
+		}
+	}
+
+	window.clearTimeout(titleFlashTimer);
+	const original = document.title;
+	document.title = `🔔 ${name} is at your door!`;
+	titleFlashTimer = window.setTimeout(() => {
+		document.title = original;
+	}, 6000);
+}
+
+function IncomingRingToast({
+	name,
+	onClose,
+}: {
+	name: string;
+	onClose: () => void;
+}) {
+	const reduceMotion = useReducedMotion();
+	return (
+		<motion.button
+			animate={{ opacity: 1, scale: 1, y: 0 }}
+			className="pointer-events-auto flex w-[min(92vw,24rem)] cursor-pointer items-center gap-3 rounded-2xl border border-primary/40 bg-card p-4 text-left shadow-xl"
+			initial={
+				reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.92, y: 12 }
+			}
+			onClick={onClose}
+			transition={spring}
+			type="button"
+		>
+			<div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
+				<span className="ddd-pulse-ring absolute inset-0 rounded-full border-2 border-amber-300" />
+				<span className="flex h-9 w-9 items-center justify-center rounded-full border-[#3a2a1a] border-[3px] bg-gradient-to-br from-amber-200 to-amber-400 shadow-[0_0_16px_rgba(255,200,120,0.8)]">
+					<span className="h-3 w-3 rounded-full bg-gradient-to-br from-red-500 to-red-700 shadow-inner" />
+				</span>
+			</div>
+			<div>
+				<p className="font-display font-extrabold text-base text-primary">
+					Someone's at your door!
+				</p>
+				<p className="text-muted-foreground text-sm">
+					{name} is ringing — answer in time or they ditch you.
+				</p>
+			</div>
+		</motion.button>
+	);
+}
+
+/** The catcher's win: a big animated toast with the point reward. */
+function YouCaughtThemToast({
+	delta,
+	name,
+	onClose,
+}: {
+	delta: number;
+	name: string;
+	onClose: () => void;
+}) {
+	const reduceMotion = useReducedMotion();
+
+	useEffect(() => {
+		celebrate({ originY: 0.45, particleCount: 160 });
+		celebrateFromSides();
+		playSparkle();
+	}, []);
+
+	return (
+		<motion.button
+			animate={{ opacity: 1, scale: 1, y: 0 }}
+			className="pointer-events-auto flex w-[min(92vw,24rem)] cursor-pointer items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left shadow-xl"
+			initial={
+				reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 12 }
+			}
+			onClick={onClose}
+			transition={spring}
+			type="button"
+		>
+			<motion.div
+				animate={reduceMotion ? { rotate: 0 } : { rotate: [-6, 6, -6, 0] }}
+				transition={{
+					duration: 0.8,
+					ease: "easeInOut",
+					repeat: Number.POSITIVE_INFINITY,
+				}}
+			>
+				<DoorbellChamp />
+			</motion.div>
+			<div>
+				<p className="font-display font-extrabold text-base text-primary">
+					You caught them!
+				</p>
+				<p className="text-muted-foreground text-sm">
+					{name} never saw it coming. {formatDelta(delta)} points.
+				</p>
+			</div>
+		</motion.button>
+	);
 }
 
 function IdleDoor() {

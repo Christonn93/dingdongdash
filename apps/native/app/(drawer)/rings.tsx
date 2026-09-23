@@ -96,7 +96,7 @@ export default function RingsScreen() {
 											</Animated.View>
 											<View className="flex-1">
 												<Text className="font-extrabold text-base text-white">
-													{ring.ringer.name} is at your door
+													{ring.ringer?.name ?? "Someone"} is at your door
 												</Text>
 												<Text className="text-white/85 text-xs">
 													Answer before the timer runs out

@@ -1,9 +1,9 @@
 import type { Database } from "@dingdongdash/db";
-import { purchase, user } from "@dingdongdash/db/schema";
+import { pointsLedger, purchase, user } from "@dingdongdash/db/schema";
 import { eq, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 
 import type { CatalogItem } from "./catalog";
-import { applyPoints } from "./points";
 
 export type PurchasePlatform = "ios" | "android" | "web";
 
@@ -13,7 +13,10 @@ export interface GrantPurchaseInput {
 	productId: string;
 }
 
-/** Persists a paid purchase and grants its points / items to the user. */
+/** Persists a paid purchase and grants its points / items to the user.
+ * Everything — purchase row, points ledger entry, points cache, item grant —
+ * lands in ONE atomic D1 batch, so a crash mid-way can never leave a paid
+ * purchase with missing points (or points with no purchase row). */
 export async function grantPurchase(
 	db: Database,
 	userId: string,
@@ -40,19 +43,31 @@ export async function grantPurchase(
 		userId,
 	};
 
+	const writes: [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]] = [
+		db.insert(purchase).values(purchaseRow),
+	];
 	if (itemGranted === "time_shield") {
-		await db.batch([
-			db.insert(purchase).values(purchaseRow),
+		writes.push(
 			db
 				.update(user)
 				.set({ timeShields: sql`${user.timeShields} + 3` })
-				.where(eq(user.id, userId)),
-		]);
-	} else {
-		await db.insert(purchase).values(purchaseRow);
+				.where(eq(user.id, userId))
+		);
+	}
+	if (pointsGranted > 0) {
+		writes.push(
+			db.insert(pointsLedger).values({
+				amount: pointsGranted,
+				id: crypto.randomUUID(),
+				reason: "purchase",
+				userId,
+			}),
+			db
+				.update(user)
+				.set({ points: sql`${user.points} + ${pointsGranted}` })
+				.where(eq(user.id, userId))
+		);
 	}
 
-	if (pointsGranted > 0) {
-		await applyPoints(db, userId, pointsGranted, "purchase");
-	}
+	await db.batch(writes);
 }

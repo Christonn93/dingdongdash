@@ -1,3 +1,7 @@
+import {
+	DOOR_SKINS,
+	type DoorSkinTheme,
+} from "@dingdongdash/api/lib/door-catalog";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
@@ -11,7 +15,6 @@ import Animated, {
 	Layout,
 	ZoomIn,
 } from "react-native-reanimated";
-
 import { Container } from "@/components/container";
 import { ConfettiBurst } from "@/components/door/confetti";
 import { DoorScene } from "@/components/door/door";
@@ -32,7 +35,7 @@ interface IncomingRing {
 	durationMs: number;
 	expiresAt: string;
 	id: string;
-	ringer: { name: string };
+	ringer: { name: string } | null;
 }
 
 interface FriendRow {
@@ -57,6 +60,9 @@ export default function Dashboard() {
 	const me = useQuery(
 		trpc.users.me.queryOptions(undefined, { enabled: authed })
 	);
+	const skin =
+		DOOR_SKINS.find((item) => item.id === me.data?.user.doorSkinId) ??
+		DOOR_SKINS[0];
 	const active = useQuery(
 		trpc.rings.getActive.queryOptions(undefined, {
 			enabled: authed,
@@ -233,6 +239,7 @@ export default function Dashboard() {
 
 				<ShakeView intensity={5} shakeKey={burstId > 0 ? burstId : null}>
 					<DoorCard
+						cameraDoorbell={me.data?.user.cameraDoorbell ?? false}
 						colors={colors}
 						countdownFraction={
 							incoming
@@ -248,6 +255,8 @@ export default function Dashboard() {
 						onOpen={openDoor}
 						onRing={handleDoorbell}
 						ringing={ringing}
+						skin={skin.theme}
+						spyCamera={me.data?.user.spyCamera ?? false}
 					/>
 				</ShakeView>
 
@@ -294,7 +303,7 @@ export default function Dashboard() {
 							size={14}
 						/>
 						<Text className="text-xs" style={{ color: colors.muted }}>
-							Mutual friends only · 1 ring per hour · DND respected
+							Mutual friends only · one ring at a time · DND respected
 						</Text>
 					</View>
 				</View>
@@ -375,6 +384,9 @@ function DoorCard({
 	ringing,
 	countdownFraction,
 	loading,
+	cameraDoorbell,
+	skin,
+	spyCamera,
 	onOpen,
 	onRing,
 }: {
@@ -383,6 +395,9 @@ function DoorCard({
 	ringing: boolean;
 	countdownFraction: number;
 	loading: boolean;
+	cameraDoorbell: boolean;
+	skin: DoorSkinTheme;
+	spyCamera: boolean;
 	onOpen: () => void;
 	onRing: () => void;
 }) {
@@ -404,12 +419,15 @@ function DoorCard({
 			>
 				<Fireflies />
 				<DoorScene
+					cameraDoorbell={cameraDoorbell}
 					countdownFraction={countdownFraction}
 					disabled={loading}
 					onOpen={onOpen}
 					onRing={onRing}
 					phase={ringing ? "ringing" : "idle"}
 					size={300}
+					skin={skin}
+					spyCamera={spyCamera}
 				/>
 
 				<View className="mt-3 w-full items-center">
@@ -422,7 +440,7 @@ function DoorCard({
 								className="text-center font-extrabold text-lg"
 								style={{ color: colors.foreground }}
 							>
-								{incoming.ringer.name} is at your door!
+								{incoming.ringer?.name ?? "Someone"} is at your door!
 							</Text>
 							<Text
 								className="mt-0.5 mb-3 text-center text-sm"

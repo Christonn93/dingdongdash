@@ -14,6 +14,14 @@ export const user = sqliteTable("user", {
 		.notNull(),
 	dndFrom: integer("dnd_from").default(22).notNull(),
 	dndTo: integer("dnd_to").default(8).notNull(),
+	doorSkinId: text("door_skin_id").default("classic").notNull(),
+	cameraDoorbell: integer("camera_doorbell", { mode: "boolean" })
+		.default(false)
+		.notNull(),
+	ringSoundId: text("ring_sound_id").default("dingdong").notNull(),
+	spyCamera: integer("spy_camera", { mode: "boolean" })
+		.default(false)
+		.notNull(),
 	email: text("email").notNull().unique(),
 	emailVerified: integer("email_verified", { mode: "boolean" })
 		.default(false)

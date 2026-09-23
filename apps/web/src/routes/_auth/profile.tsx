@@ -25,6 +25,21 @@ const SMS_PHONE_REGEX = /^\+[1-9][0-9]{6,14}$/;
 
 const USERNAME_REGEX = /^[a-z0-9_]{3,24}$/;
 
+const REASON_LABELS: Record<string, string> = {
+	adjustment: "Adjustment",
+	catch: "Catch",
+	daily_bonus: "Daily bonus",
+	ditch_penalty: "Ditched",
+	ditch_reward: "Caught them",
+	ditch_ring_penalty: "Ringer ditched",
+	purchase: "Purchase",
+	signup_bonus: "Welcome bonus",
+};
+
+function reasonLabel(reason: string): string {
+	return REASON_LABELS[reason] ?? reason.replaceAll("_", " ");
+}
+
 function formatArea(city?: string | null, country?: string | null): string {
 	if (!(city || country)) {
 		return "";
@@ -432,7 +447,7 @@ function ProfileRoute() {
 								key={entry.id}
 							>
 								<div>
-									<p className="text-sm capitalize">{entry.reason}</p>
+									<p className="text-sm">{reasonLabel(entry.reason)}</p>
 									<p className="text-muted-foreground text-xs">
 										{new Date(entry.createdAt).toLocaleString()}
 									</p>

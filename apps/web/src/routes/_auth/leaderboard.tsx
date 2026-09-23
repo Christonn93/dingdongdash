@@ -81,6 +81,7 @@ function LeaderboardRoute() {
 	}
 
 	const me = friends.data?.me;
+	const globalMe = global.data?.me;
 	const rows =
 		scope === "friends"
 			? (friends.data?.entries ?? [])
@@ -95,6 +96,13 @@ function LeaderboardRoute() {
 		setOffset(0);
 	};
 
+	let subtitle = "";
+	if (scope === "friends" && me) {
+		subtitle = `You're #${me.rank ?? "?"} among friends, #${me.globalRank} globally.`;
+	} else if (scope !== "friends" && globalMe) {
+		subtitle = `You're #${globalMe.rank} in this list, #${globalMe.globalRank} globally.`;
+	}
+
 	return (
 		<div className="mx-auto w-full max-w-3xl px-4 py-8">
 			<Reveal>
@@ -103,10 +111,7 @@ function LeaderboardRoute() {
 						Leaderboard
 					</h1>
 					<p className="mt-1 text-muted-foreground text-sm">
-						Climb the ranks.{" "}
-						{me
-							? `You're #${me.rank ?? "?"} among friends, #${me.globalRank} globally.`
-							: ""}
+						Climb the ranks. {subtitle}
 					</p>
 				</div>
 			</Reveal>
@@ -149,6 +154,50 @@ function LeaderboardRoute() {
 		}
 		if (loading) {
 			return <LeaderboardSkeleton />;
+		}
+		if (isGlobal && globalMe) {
+			return (
+				<Card>
+					<CardContent className="divide-y">
+						<Reveal index={0}>
+							<Row
+								accepting={acceptRequest.isPending}
+								avatarId={globalMe.avatarId}
+								highlight
+								incomingFriendshipId={null}
+								name={globalMe.name}
+								onAccept={() => undefined}
+								onSend={() => undefined}
+								points={globalMe.points}
+								rank={globalMe.rank}
+								relationship="me"
+								sending={sendRequest.isPending}
+							/>
+						</Reveal>
+						{rows.map((entry, index) => (
+							<Reveal index={index + 1} key={entry.id}>
+								<Row
+									accepting={acceptRequest.isPending}
+									avatarId={entry.avatarId}
+									highlight={false}
+									incomingFriendshipId={entry.incomingFriendshipId ?? null}
+									name={entry.name}
+									onAccept={() =>
+										acceptRequest.mutate({
+											friendshipId: entry.incomingFriendshipId ?? "",
+										})
+									}
+									onSend={() => sendRequest.mutate({ targetUserId: entry.id })}
+									points={entry.points}
+									rank={entry.rank}
+									relationship={entry.relationship as FriendRelationship}
+									sending={sendRequest.isPending}
+								/>
+							</Reveal>
+						))}
+					</CardContent>
+				</Card>
+			);
 		}
 		if (rows.length === 0) {
 			return (

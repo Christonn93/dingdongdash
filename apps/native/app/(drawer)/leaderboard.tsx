@@ -21,12 +21,6 @@ interface Row {
 const MEDALS = ["#f5c518", "#c0c0c0", "#cd7f32"];
 
 export default function LeaderboardScreen() {
-	const mutedColor = useThemeColor("muted");
-	const foregroundColor = useThemeColor("foreground");
-	const accentColor = useThemeColor("accent");
-	const surfaceColor = useThemeColor("surface");
-	const borderColor = useThemeColor("border");
-
 	const [scope, setScope] = useState<Scope>("friends");
 	const [offset, setOffset] = useState(0);
 
@@ -42,6 +36,7 @@ export default function LeaderboardScreen() {
 	);
 
 	const me = friends.data?.me;
+	const globalMe = global.data?.me;
 	const rows: Row[] =
 		scope === "friends"
 			? (friends.data?.entries ?? [])
@@ -52,6 +47,13 @@ export default function LeaderboardScreen() {
 	const podium = rows.slice(0, 3);
 	const rest = rows.slice(3);
 
+	let subtitle = "Climb the ranks — every catch counts.";
+	if (scope === "friends" && me) {
+		subtitle = `You're #${me.rank ?? "?"} among friends, #${me.globalRank} globally.`;
+	} else if (scope !== "friends" && globalMe) {
+		subtitle = `You're #${globalMe.rank} in this list, #${globalMe.globalRank} globally.`;
+	}
+
 	return (
 		<Container>
 			<ScrollView className="flex-1" contentContainerClassName="p-4">
@@ -59,79 +61,40 @@ export default function LeaderboardScreen() {
 					<Text className="font-black text-3xl text-foreground tracking-tight">
 						Leaderboard
 					</Text>
-					<Text className="mt-1 text-muted text-sm">
-						{me
-							? `You're #${me.rank ?? "?"} among friends, #${me.globalRank} globally.`
-							: "Climb the ranks — every catch counts."}
-					</Text>
+					<Text className="mt-1 text-muted text-sm">{subtitle}</Text>
 				</View>
 
 				{/* Scope toggle */}
-				<View
-					style={{
-						backgroundColor: surfaceColor,
-						borderColor,
-						borderRadius: 999,
-						borderWidth: 1,
-						flexDirection: "row",
-						marginBottom: 16,
-						padding: 4,
-					}}
-				>
-					{(["friends", "global"] as const).map((s) => {
-						const active = scope === s;
-						return (
-							<Pressable
-								key={s}
-								onPress={() => setScope(s)}
-								style={{
-									alignItems: "center",
-									backgroundColor: active ? accentColor : "transparent",
-									borderRadius: 999,
-									flex: 1,
-									paddingVertical: 9,
-								}}
-							>
-								<Text
-									className="font-bold text-sm capitalize"
-									style={{ color: active ? "#fff" : mutedColor }}
-								>
-									{s}
-								</Text>
-							</Pressable>
-						);
-					})}
+				<ScopeToggle onScopeChange={setScope} scope={scope} />
+
+				{renderBoard()}
+			</ScrollView>
+		</Container>
+	);
+
+	function renderBoard() {
+		if (loading) {
+			return (
+				<View className="items-center py-12">
+					<Spinner size="lg" />
 				</View>
-
-				{loading ? (
-					<View className="items-center py-12">
-						<Spinner size="lg" />
-					</View>
-				) : null}
-
-				{scope === "friends" && friends.isError ? (
-					<ErrorState
-						message="We couldn't load the leaderboard."
-						onRetry={() => friends.refetch()}
-					/>
-				) : null}
-
-				{!loading && rows.length === 0 ? (
-					<Surface
-						className="items-center rounded-2xl py-10"
-						variant="secondary"
-					>
-						<Ionicons color={mutedColor} name="podium-outline" size={40} />
-						<Text className="mt-3 font-semibold text-foreground">
-							No rankings yet
-						</Text>
-						<Text className="mt-1 text-muted text-xs">
-							Ring some friends to start climbing
-						</Text>
-					</Surface>
-				) : null}
-
-				{!loading && podium.length > 0 ? (
+			);
+		}
+		if (scope === "friends" && friends.isError) {
+			return (
+				<ErrorState
+					message="We couldn't load the leaderboard."
+					onRetry={() => friends.refetch()}
+				/>
+			);
+		}
+		if (rows.length === 0) {
+			return <NoRankings />;
+		}
+		return (
+			<>
+				{scope === "global" && globalMe ? <YouCard entry={globalMe} /> : null}
+				{podium.length > 0 ? (
 					<View
 						style={{
 							alignItems: "flex-end",
@@ -160,76 +123,7 @@ export default function LeaderboardScreen() {
 						/>
 					</View>
 				) : null}
-
-				{rest.length > 0 ? (
-					<Surface className="rounded-2xl p-1" variant="secondary">
-						{rest.map((entry, index) => {
-							const isMe = entry.id === me?.id;
-							return (
-								<Animated.View
-									entering={FadeInDown.delay(index * 20).duration(250)}
-									key={entry.id}
-								>
-									<View
-										style={{
-											alignItems: "center",
-											backgroundColor: isMe
-												? "rgba(249,115,22,0.10)"
-												: "transparent",
-											borderRadius: 14,
-											flexDirection: "row",
-											justifyContent: "space-between",
-											paddingHorizontal: 12,
-											paddingVertical: 11,
-										}}
-									>
-										<View
-											style={{
-												alignItems: "center",
-												flexDirection: "row",
-												gap: 12,
-											}}
-										>
-											<Text
-												className="w-6 text-center font-bold text-sm"
-												style={{ color: mutedColor }}
-											>
-												{entry.rank}
-											</Text>
-											<View
-												style={{
-													alignItems: "center",
-													backgroundColor: isMe
-														? accentColor
-														: `${mutedColor}33`,
-													borderRadius: 17,
-													height: 34,
-													justifyContent: "center",
-													width: 34,
-												}}
-											>
-												<Text
-													className="font-extrabold text-sm"
-													style={{ color: isMe ? "#fff" : foregroundColor }}
-												>
-													{entry.name.charAt(0).toUpperCase()}
-												</Text>
-											</View>
-											<Text className="font-semibold text-foreground text-sm">
-												{entry.name}
-												{isMe ? " (you)" : ""}
-											</Text>
-										</View>
-										<Text className="font-bold text-foreground text-sm">
-											{entry.points.toLocaleString()}
-										</Text>
-									</View>
-								</Animated.View>
-							);
-						})}
-					</Surface>
-				) : null}
-
+				{rest.length > 0 ? <RestList entries={rest} meId={me?.id} /> : null}
 				{scope === "global" && global.data?.nextCursor ? (
 					<Button
 						className="mt-4"
@@ -239,8 +133,185 @@ export default function LeaderboardScreen() {
 						<Button.Label>Load more</Button.Label>
 					</Button>
 				) : null}
-			</ScrollView>
-		</Container>
+			</>
+		);
+	}
+}
+
+function ScopeToggle({
+	scope,
+	onScopeChange,
+}: {
+	scope: Scope;
+	onScopeChange: (next: Scope) => void;
+}) {
+	const mutedColor = useThemeColor("muted");
+	const accentColor = useThemeColor("accent");
+	const surfaceColor = useThemeColor("surface");
+	const borderColor = useThemeColor("border");
+
+	return (
+		<View
+			style={{
+				backgroundColor: surfaceColor,
+				borderColor,
+				borderRadius: 999,
+				borderWidth: 1,
+				flexDirection: "row",
+				marginBottom: 16,
+				padding: 4,
+			}}
+		>
+			{(["friends", "global"] as const).map((s) => {
+				const active = scope === s;
+				return (
+					<Pressable
+						key={s}
+						onPress={() => onScopeChange(s)}
+						style={{
+							alignItems: "center",
+							backgroundColor: active ? accentColor : "transparent",
+							borderRadius: 999,
+							flex: 1,
+							paddingVertical: 9,
+						}}
+					>
+						<Text
+							className="font-bold text-sm capitalize"
+							style={{ color: active ? "#fff" : mutedColor }}
+						>
+							{s}
+						</Text>
+					</Pressable>
+				);
+			})}
+		</View>
+	);
+}
+
+function NoRankings() {
+	const mutedColor = useThemeColor("muted");
+
+	return (
+		<Surface className="items-center rounded-2xl py-10" variant="secondary">
+			<Ionicons color={mutedColor} name="podium-outline" size={40} />
+			<Text className="mt-3 font-semibold text-foreground">
+				No rankings yet
+			</Text>
+			<Text className="mt-1 text-muted text-xs">
+				Ring some friends to start climbing
+			</Text>
+		</Surface>
+	);
+}
+
+function YouCard({ entry }: { entry: Row }) {
+	const accentColor = useThemeColor("accent");
+
+	return (
+		<Surface
+			className="mb-4 flex-row items-center justify-between rounded-2xl px-4 py-3"
+			style={{ backgroundColor: "rgba(249,115,22,0.12)" }}
+		>
+			<View style={{ alignItems: "center", flexDirection: "row", gap: 12 }}>
+				<View
+					style={{
+						alignItems: "center",
+						backgroundColor: accentColor,
+						borderRadius: 17,
+						height: 34,
+						justifyContent: "center",
+						width: 34,
+					}}
+				>
+					<Text className="font-extrabold text-sm text-white">
+						{entry.name.charAt(0).toUpperCase()}
+					</Text>
+				</View>
+				<Text className="font-bold text-foreground text-sm">
+					{entry.name} (you)
+				</Text>
+			</View>
+			<View style={{ alignItems: "flex-end" }}>
+				<Text className="font-black text-foreground text-sm">
+					#{entry.rank}
+				</Text>
+				<Text className="text-muted text-xs">
+					{entry.points.toLocaleString()} pts
+				</Text>
+			</View>
+		</Surface>
+	);
+}
+
+function RestList({ entries, meId }: { entries: Row[]; meId?: string }) {
+	const mutedColor = useThemeColor("muted");
+	const foregroundColor = useThemeColor("foreground");
+	const accentColor = useThemeColor("accent");
+
+	return (
+		<Surface className="rounded-2xl p-1" variant="secondary">
+			{entries.map((entry, index) => {
+				const isMe = entry.id === meId;
+				return (
+					<Animated.View
+						entering={FadeInDown.delay(index * 20).duration(250)}
+						key={entry.id}
+					>
+						<View
+							style={{
+								alignItems: "center",
+								backgroundColor: isMe ? "rgba(249,115,22,0.10)" : "transparent",
+								borderRadius: 14,
+								flexDirection: "row",
+								justifyContent: "space-between",
+								paddingHorizontal: 12,
+								paddingVertical: 11,
+							}}
+						>
+							<View
+								style={{
+									alignItems: "center",
+									flexDirection: "row",
+									gap: 12,
+								}}
+							>
+								<Text
+									className="w-6 text-center font-bold text-sm"
+									style={{ color: mutedColor }}
+								>
+									{entry.rank}
+								</Text>
+								<View
+									style={{
+										alignItems: "center",
+										backgroundColor: isMe ? accentColor : `${mutedColor}33`,
+										borderRadius: 17,
+										height: 34,
+										justifyContent: "center",
+										width: 34,
+									}}
+								>
+									<Text
+										className="font-extrabold text-sm"
+										style={{ color: isMe ? "#fff" : foregroundColor }}
+									>
+										{entry.name.charAt(0).toUpperCase()}
+									</Text>
+								</View>
+								<Text className="font-semibold text-foreground text-sm">
+									{entry.name}
+									{isMe ? " (you)" : ""}
+								</Text>
+							</View>
+							<Text className="font-bold text-foreground text-sm">
+								{entry.points.toLocaleString()}
+							</Text>
+						</View>
+					</Animated.View>
+				);
+			})}
+		</Surface>
 	);
 }
 

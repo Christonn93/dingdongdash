@@ -11,7 +11,7 @@ import {
 import { pointsLedger } from "@dingdongdash/db/schema/game";
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { renderBrandedEmail, sendAuthEmail } from "./email";
 
@@ -93,6 +93,22 @@ export function createAuth(
 			user: {
 				create: {
 					after: async (createdUser) => {
+						// Idempotent: if this hook is ever retried after a partial
+						// failure, don't grant the signup bonus twice. The ledger
+						// records the grant; User.points already carries the default.
+						const [existing] = await database
+							.select({ id: pointsLedger.id })
+							.from(pointsLedger)
+							.where(
+								and(
+									eq(pointsLedger.userId, createdUser.id),
+									eq(pointsLedger.reason, "signup_bonus")
+								)
+							)
+							.limit(1);
+						if (existing) {
+							return;
+						}
 						await database.insert(pointsLedger).values({
 							amount: STARTING_POINTS,
 							id: crypto.randomUUID(),
@@ -186,6 +202,16 @@ export function createAuth(
 					required: false,
 					type: "string",
 				},
+				cameraDoorbell: {
+					input: false,
+					required: false,
+					type: "boolean",
+				},
+				doorSkinId: {
+					input: false,
+					required: false,
+					type: "string",
+				},
 				phoneHash: {
 					input: false,
 					required: false,
@@ -196,6 +222,16 @@ export function createAuth(
 					input: false,
 					required: false,
 					type: "number",
+				},
+				ringSoundId: {
+					input: false,
+					required: false,
+					type: "string",
+				},
+				spyCamera: {
+					input: false,
+					required: false,
+					type: "boolean",
 				},
 				username: {
 					input: true,
