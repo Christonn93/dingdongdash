@@ -14,6 +14,9 @@ import { BellBandit } from "./caught-celebration";
 const POLL_MS = 4000;
 
 function formatDelta(delta: number): string {
+	if (delta === 0) {
+		return "0";
+	}
 	return `${delta > 0 ? "+" : "−"}${Math.abs(delta)}`;
 }
 

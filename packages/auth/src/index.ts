@@ -212,6 +212,11 @@ export function createAuth(
 					required: false,
 					type: "string",
 				},
+				lastLoginAt: {
+					input: false,
+					required: false,
+					type: "number",
+				},
 				phoneHash: {
 					input: false,
 					required: false,

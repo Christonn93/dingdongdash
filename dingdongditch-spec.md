@@ -6,8 +6,8 @@ Version 1.0 — Draft for development, written for use with AI coding agents (Cl
 
 DingDongDitch is a real-time social mobile game. User A "rings the bell" on User B's profile. User B has a fixed countdown (default 30 seconds) to open the app and "answer the door" to see who rang. If User B answers in time, User B "catches" User A. If the timer expires, User A "ditches" successfully.
 
-- **Catch (User B opens in time):** User B +10 points, User A −5 points (User A's penalty is capped by the rolling 24h loss floor).
-- **Ditch (User B fails to open in time):** User B −10 points (capped by the rolling 24h loss floor), User A +10 points.
+- **Catch (User B opens in time):** User B +10 points, User A −5 points.
+- **Ditch (User B fails to open in time):** User B −10 points, User A +10 points.
 - All users start with 100 points.
 - Points can be topped up with real-money in-app purchases (pay-to-win economy, not redeemable for cash — see Section 6).
 - Users can spend real money on consumable items (e.g., time-extension shields) that improve their odds of catching or ditching.
@@ -174,7 +174,7 @@ Because the core mechanic is "make someone's phone buzz and penalize them if the
 - **Ring cooldown.** Cap how often User A can ring the same target (e.g., once per target per hour) to prevent spam-ringing someone into a point drain.
 - **Do Not Disturb windows.** Let users set quiet hours where incoming rings are queued or blocked, not silently ditched against them.
 - **Mute/block.** Standard block functionality that also removes the friendship and disables ringing both ways.
-- **Fair loss cap.** Consider a daily floor on how many points a user can lose from ditches, so one bad day (or one malicious friend spam-ringing at the cooldown limit) can't tank someone's rank irrecoverably.
+- **Points must be earned to ring.** A user with 0 or negative points cannot ring anyone (server-rejected in `rings.create`). This replaces a daily loss floor as the anti-drain guardrail — the exchange always settles in full (A +10 / B −10), so points can genuinely reach zero or negative, at which point the user must catch friends to ring again.
 
 ## 8. Notification Reliability (Critical Path)
 

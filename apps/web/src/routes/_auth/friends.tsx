@@ -22,7 +22,9 @@ export const Route = createFileRoute("/_auth/friends")({
 });
 
 function FriendsRoute() {
-	const friends = useQuery(trpc.friends.list.queryOptions());
+	const friends = useQuery(
+		trpc.friends.list.queryOptions(undefined, { refetchInterval: 5000 })
+	);
 	const discover = useQuery(
 		trpc.friends.discover.queryOptions(undefined, {
 			refetchInterval: 30_000,

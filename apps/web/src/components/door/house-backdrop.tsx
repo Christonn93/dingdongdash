@@ -10,7 +10,7 @@ import { spring } from "@/lib/motion";
  * its right (the bell on the wall, not the frame).
  */
 export const DOOR_SCENE_BOX = "relative h-72 w-64 rounded-lg sm:h-80 sm:w-72";
-export const DOORWAY_POSITION = "absolute bottom-8 left-4 top-8 w-36 sm:w-40";
+export const DOORWAY_POSITION = "absolute bottom-4 left-4 top-4 w-36 sm:w-40";
 export const BELL_POSITION = "absolute right-6 top-[57%] z-20";
 
 /**

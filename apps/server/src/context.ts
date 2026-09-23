@@ -1,4 +1,6 @@
 import type { Context as ApiContext } from "@dingdongdash/api/context";
+import { touchLastLogin } from "@dingdongdash/api/lib/last-login";
+import { settleExpiredRings } from "@dingdongdash/api/lib/rings";
 import { persistRegion } from "@dingdongdash/api/lib/region";
 import type { Context as HonoContext } from "hono";
 
@@ -32,6 +34,18 @@ export async function createContext({
 		headers: context.req.raw.headers,
 	});
 	const region = detectRegion(context);
+
+	// Settle any ring that expired while nobody was watching. This is what makes
+	// points update LIVE — the moment a countdown ends, the next request to the
+	// server (from ANY user) resolves the ring and writes both players' points,
+	// with no dependency on either player logging in. Cheap (bounded sweep), and
+	// the CAS inside each resolution makes overlapping sweeps safe.
+	await settleExpiredRings(db);
+
+	// Remember when this user was last active (once an hour is plenty).
+	if (session) {
+		await touchLastLogin(db, session.user.id);
+	}
 
 	// Store the detected region once it differs from what we already know.
 	// Region is stable, so this is a rare write (e.g. the user travelled).

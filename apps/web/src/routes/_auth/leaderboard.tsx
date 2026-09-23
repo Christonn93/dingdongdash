@@ -42,17 +42,21 @@ function LeaderboardRoute() {
 	const isGlobal = scope !== "friends";
 	const globalScope = scope === "friends" ? "all" : scope;
 
-	const friends = useQuery(trpc.leaderboard.getFriends.queryOptions());
+	const friends = useQuery(
+		trpc.leaderboard.getFriends.queryOptions(undefined, {
+			refetchInterval: 5000,
+		})
+	);
 	const global = useQuery(
 		trpc.leaderboard.getGlobal.queryOptions(
 			{ cursor: 0, limit: 25, scope: globalScope },
-			{ enabled: isGlobal }
+			{ enabled: isGlobal, refetchInterval: 5000 }
 		)
 	);
 	const more = useQuery(
 		trpc.leaderboard.getGlobal.queryOptions(
 			{ cursor: offset + 25, limit: 25, scope: globalScope },
-			{ enabled: isGlobal && offset > 0 }
+			{ enabled: isGlobal && offset > 0, refetchInterval: 5000 }
 		)
 	);
 

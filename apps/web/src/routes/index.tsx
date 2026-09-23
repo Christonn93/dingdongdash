@@ -1,3 +1,4 @@
+import { DOOR_SKINS } from "@dingdongdash/api/lib/door-catalog";
 import { Button } from "@dingdongdash/ui/components/button";
 import {
 	Card,
@@ -10,6 +11,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
 import { AuthPanel } from "@/components/auth-panel";
+import { DoorArt } from "@/components/door/door-art";
+import { HouseBell } from "@/components/door/house-backdrop";
 import { FrontDoor } from "@/components/front-door";
 import { InstallAppButton } from "@/components/install-app-button";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -173,6 +176,8 @@ function LandingPage() {
 			<HowItWorks />
 			<Scoring />
 			<Features />
+			<HouseSection />
+			<ShopSection />
 			<InstallSection />
 			<Footer />
 		</div>
@@ -387,6 +392,224 @@ function Features() {
 								</p>
 							</div>
 						</div>
+					</Reveal>
+				))}
+			</div>
+		</section>
+	);
+}
+
+function HouseSection() {
+	const upgrades = [
+		{
+			icon: "camera",
+			title: "Camera doorbell",
+			body: "See exactly who's ringing before you answer. Without one, ringers stay a mystery.",
+		},
+		{
+			icon: "music",
+			title: "Six ring sounds",
+			body: "From a classic ding-dong to a rising marimba riff. Preview every one before you buy.",
+		},
+		{
+			icon: "spark",
+			title: "Built with points",
+			body: "Catch friends to earn points, then spend them on your doorstep. Earned, not bought.",
+		},
+	] as const;
+
+	return (
+		<section className="border-y bg-muted/40 py-20">
+			<div className="mx-auto max-w-5xl px-6">
+				<Reveal>
+					<div className="text-center">
+						<h2 className="font-display font-extrabold text-3xl tracking-tight sm:text-4xl">
+							Every door tells your story
+						</h2>
+						<p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+							Five doors, each with its own wall, its own bell, and its own
+							sound. Your doorstep is the first thing ringers see.
+						</p>
+					</div>
+				</Reveal>
+
+				{/* Door showcase */}
+				<div className="mt-12 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
+					{DOOR_SKINS.map((skin, index) => (
+						<ShowcaseDoor index={index} key={skin.id} skin={skin} />
+					))}
+				</div>
+
+				{/* Upgrade features */}
+				<div className="mt-14 grid gap-4 sm:grid-cols-3">
+					{upgrades.map((item, index) => (
+						<Reveal index={index} key={item.title}>
+							<div className="flex gap-4 rounded-2xl border bg-background p-5">
+								<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+									{upgradeIcon(item.icon)}
+								</div>
+								<div>
+									<h3 className="font-semibold">{item.title}</h3>
+									<p className="mt-1 text-muted-foreground text-sm">
+										{item.body}
+									</p>
+								</div>
+							</div>
+						</Reveal>
+					))}
+				</div>
+			</div>
+		</section>
+	);
+}
+
+function ShowcaseDoor({
+	skin,
+	index,
+}: {
+	skin: (typeof DOOR_SKINS)[number];
+	index: number;
+}) {
+	const { theme } = skin;
+	return (
+		<Reveal index={index}>
+			<div className="group flex flex-col items-center gap-3">
+				<div
+					className="relative h-40 w-28 overflow-hidden rounded-xl shadow-lg ring-1 ring-border/50 transition-transform duration-300 group-hover:-translate-y-1.5"
+					style={{
+						background: `linear-gradient(180deg, ${theme.wall.from}, ${theme.wall.to})`,
+					}}
+				>
+					{/* Doorway — frame + door (door's own 160:300 aspect, no gaps) */}
+					<div className="absolute top-9 bottom-3 left-2 w-[4.5rem]">
+						<div
+							aria-hidden="true"
+							className="absolute inset-0 border-4"
+							style={{
+								borderColor: theme.frame,
+								boxShadow: `inset 0 0 0 2px ${theme.frame}`,
+							}}
+						/>
+						<div className="absolute inset-[4px]">
+							<DoorArt className="h-full w-full" theme={theme} />
+						</div>
+					</div>
+					{/* Bell on the wall */}
+					{theme.bellStyle === "knocker" ? null : (
+						<div aria-hidden="true" className="absolute top-[46%] right-1 z-20">
+							<HouseBell
+								cameraDoorbell={false}
+								interactive={false}
+								theme={theme}
+							/>
+						</div>
+					)}
+				</div>
+				<div className="text-center">
+					<p className="font-bold font-display text-sm">{skin.name}</p>
+					<p className="text-muted-foreground text-xs">
+						{skin.pricePoints === 0
+							? "Included"
+							: `${skin.pricePoints.toLocaleString()} pts`}
+					</p>
+				</div>
+			</div>
+		</Reveal>
+	);
+}
+
+function upgradeIcon(icon: "camera" | "music" | "spark") {
+	const paths: Record<string, React.ReactNode> = {
+		camera: (
+			<path
+				d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+		),
+		music: (
+			<path
+				d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+		),
+		spark: (
+			<path
+				d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+		),
+	};
+	return (
+		<svg
+			aria-hidden="true"
+			className="h-5 w-5"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.8"
+			viewBox="0 0 24 24"
+		>
+			{paths[icon]}
+		</svg>
+	);
+}
+
+function ShopSection() {
+	const items = [
+		{
+			title: "Doors",
+			body: "Five designs, each with its own wall and hardware — from warm oak to a neon night.",
+			points: "From 500 pts",
+		},
+		{
+			title: "Ring sounds",
+			body: "Classic ding-dong, knock-knock, an old crank, a synth glide and more. Equip one.",
+			points: "From 400 pts",
+		},
+		{
+			title: "Upgrades",
+			body: "A spy camera, or a camera doorbell that finally shows you who's ringing.",
+			points: "From 800 pts",
+		},
+		{
+			title: "Time Shields",
+			body: "Arm before someone rings and buy yourself an extra 15 seconds to answer.",
+			points: "Real-money pack",
+		},
+	];
+
+	return (
+		<section className="mx-auto max-w-5xl px-6 py-20">
+			<Reveal>
+				<div className="text-center">
+					<h2 className="font-display font-extrabold text-3xl tracking-tight sm:text-4xl">
+						Earn points. Spend them on the door.
+					</h2>
+					<p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+						Catch a friend to earn, lose to protect your doorstep. Every point
+						you spend goes straight into your house.
+					</p>
+				</div>
+			</Reveal>
+
+			<div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+				{items.map((item, index) => (
+					<Reveal index={index} key={item.title}>
+						<Card className="h-full transition-shadow hover:shadow-lg">
+							<CardHeader>
+								<CardTitle className="text-lg">{item.title}</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<p className="text-muted-foreground text-sm leading-relaxed">
+									{item.body}
+								</p>
+								<p className="mt-3 font-semibold text-primary text-sm">
+									{item.points}
+								</p>
+							</CardContent>
+						</Card>
 					</Reveal>
 				))}
 			</div>

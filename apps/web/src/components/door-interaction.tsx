@@ -280,7 +280,7 @@ function DoorScene({
 				<motion.div
 					animate={{ opacity: open ? 1 : 0 }}
 					aria-hidden="true"
-					className="absolute inset-[10px] rounded-sm"
+					className="absolute inset-[8px] rounded-sm"
 					id="ddd-interior-glow"
 					style={{
 						background:
@@ -302,7 +302,7 @@ function DoorScene({
 							? `Answer the door for ${visitorName}`
 							: "Answer the door"
 					}
-					className={`absolute inset-[10px] cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c2136] ${
+					className={`absolute inset-[8px] cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c2136] ${
 						lost ? "cursor-default opacity-75 saturate-50" : ""
 					} ${urgent && !open && !reduceMotion ? "ddd-urgency" : ""}`}
 					disabled={!canAnswer}

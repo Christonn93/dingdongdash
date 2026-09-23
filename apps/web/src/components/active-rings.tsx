@@ -23,6 +23,9 @@ const POLL_MS = 3000;
 type AnswerOutcome = "caught" | "ditched";
 
 function formatDelta(delta: number): string {
+	if (delta === 0) {
+		return "0";
+	}
 	return `${delta > 0 ? "+" : "−"}${Math.abs(delta)}`;
 }
 
@@ -322,6 +325,11 @@ function IdleDoor() {
 		playDingDong();
 	};
 
+	if (pickerOpen) {
+		// Ring a friend → switch to the carousel of doors, replacing the idle scene.
+		return <RingFriendPicker onClose={() => setPickerOpen(false)} open />;
+	}
+
 	return (
 		<div className="overflow-hidden border-none">
 			<div className="relative overflow-hidden rounded-2xl">
@@ -379,17 +387,12 @@ function IdleDoor() {
 
 					<Button
 						className="rounded-full px-6"
-						onClick={() => setPickerOpen((value) => !value)}
+						onClick={() => setPickerOpen(true)}
 						size="lg"
 					>
-						{pickerOpen ? "Close" : "Ring a friend"}
+						Ring a friend
 					</Button>
 				</div>
-
-				<RingFriendPicker
-					onClose={() => setPickerOpen(false)}
-					open={pickerOpen}
-				/>
 			</div>
 		</div>
 	);

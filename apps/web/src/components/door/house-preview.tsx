@@ -80,7 +80,7 @@ export function HousePreview({
 						<motion.div
 							animate={{ opacity: open ? 1 : 0 }}
 							aria-hidden="true"
-							className="absolute inset-[10px] rounded-sm"
+							className="absolute inset-[8px] rounded-sm"
 							id="ddd-interior-glow"
 							style={{
 								background:
@@ -97,7 +97,7 @@ export function HousePreview({
 									: { rotateY: open ? -74 : 0, x: open ? -6 : 0 }
 							}
 							aria-label="Ring your doorbell"
-							className="absolute inset-[10px] cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c2136]"
+							className="absolute inset-[8px] cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c2136]"
 							id="ddd-door"
 							onClick={ring}
 							style={{

@@ -30,9 +30,6 @@ export const TIME_SHIELD_EXTENSION_MS = 15_000;
 
 export const TIME_SHIELDS_PER_PACK = 3;
 
-/** Floor on net points a user can lose from ring outcomes in one rolling day. */
-export const DAILY_LOSS_FLOOR = -50;
-
 export const PUSH_FEEDBACK_SKIP_REASONS = [
 	"DeviceNotRegistered",
 	"MessageTooBig",

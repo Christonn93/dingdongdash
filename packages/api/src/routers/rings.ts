@@ -109,6 +109,20 @@ export const ringsRouter = router({
 				});
 			}
 
+			// You need points to ring someone — a doorstep is earned, not begged.
+			const [ringerRow] = await db
+				.select({ points: user.points })
+				.from(user)
+				.where(eq(user.id, me))
+				.limit(1);
+			if ((ringerRow?.points ?? 0) <= 0) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"You're out of points — catch a friend before you can ring again.",
+				});
+			}
+
 			const isFriend = await isAcceptedFriend(db, me, input.targetUserId);
 			if (!isFriend) {
 				throw new TRPCError({
@@ -359,6 +373,9 @@ async function pointsDeltaByRing(
 }
 
 function formatDelta(delta: number): string {
+	if (delta === 0) {
+		return "0";
+	}
 	return `${delta > 0 ? "+" : "−"}${Math.abs(delta)}`;
 }
 

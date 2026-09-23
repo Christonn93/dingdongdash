@@ -8,7 +8,7 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useThemeColor, useToast } from "heroui-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import Animated, {
 	FadeInDown,
 	FadeInUp,
@@ -64,7 +64,10 @@ export default function Dashboard() {
 	const user = session?.user;
 
 	const me = useQuery(
-		trpc.users.me.queryOptions(undefined, { enabled: authed })
+		trpc.users.me.queryOptions(undefined, {
+			enabled: authed,
+			refetchInterval: 5000,
+		})
 	);
 	const skin =
 		DOOR_SKINS.find((item) => item.id === me.data?.user.doorSkinId) ??
@@ -243,28 +246,7 @@ export default function Dashboard() {
 					streak={streak}
 				/>
 
-				<ShakeView intensity={5} shakeKey={burstId > 0 ? burstId : null}>
-					<DoorCard
-						cameraDoorbell={me.data?.user.cameraDoorbell ?? false}
-						colors={colors}
-						countdownFraction={
-							incoming
-								? Math.max(
-										0,
-										(new Date(incoming.expiresAt).getTime() - Date.now()) /
-											incoming.durationMs
-									)
-								: 1
-						}
-						incoming={incoming}
-						loading={ringMutation.isPending}
-						onOpen={openDoor}
-						onRing={handleDoorbell}
-						ringing={ringing}
-						skin={skin.theme}
-						spyCamera={me.data?.user.spyCamera ?? false}
-					/>
-				</ShakeView>
+				{renderDoorArea()}
 
 				{stampVisible ? (
 					<View
@@ -283,15 +265,6 @@ export default function Dashboard() {
 						<ConfettiBurst key={burstId} />
 					</View>
 				) : null}
-
-				<FriendPickerPanel
-					accepted={accepted}
-					colors={colors}
-					loading={ringMutation.isPending}
-					onClose={() => setRingPanelOpen(false)}
-					onRing={ringFriend}
-					open={ringPanelOpen}
-				/>
 
 				<HowToPlay
 					accent={colors.accent}
@@ -316,6 +289,46 @@ export default function Dashboard() {
 			</View>
 		</Container>
 	);
+
+	function renderDoorArea() {
+		if (ringPanelOpen) {
+			// Ring a friend → switch to the carousel of doors, replacing the idle door.
+			return (
+				<FriendPickerPanel
+					accepted={accepted}
+					colors={colors}
+					loading={ringMutation.isPending}
+					onClose={() => setRingPanelOpen(false)}
+					onRing={ringFriend}
+					open={ringPanelOpen}
+				/>
+			);
+		}
+		return (
+			<ShakeView intensity={5} shakeKey={burstId > 0 ? burstId : null}>
+				<DoorCard
+					cameraDoorbell={me.data?.user.cameraDoorbell ?? false}
+					colors={colors}
+					countdownFraction={
+						incoming
+							? Math.max(
+									0,
+									(new Date(incoming.expiresAt).getTime() - Date.now()) /
+										incoming.durationMs
+								)
+							: 1
+					}
+					incoming={incoming}
+					loading={ringMutation.isPending}
+					onOpen={openDoor}
+					onRing={handleDoorbell}
+					ringing={ringing}
+					skin={skin.theme}
+					spyCamera={me.data?.user.spyCamera ?? false}
+				/>
+			</ShakeView>
+		);
+	}
 }
 
 function HeroHeader({
@@ -553,9 +566,16 @@ function FriendPickerPanel({
 					</Pressable>
 				</View>
 			) : (
-				<View>
+				<ScrollView
+					contentContainerStyle={{ gap: 10, paddingRight: 4 }}
+					decelerationRate="fast"
+					horizontal
+					showsHorizontalScrollIndicator={false}
+					snapToAlignment="start"
+					snapToInterval={188}
+				>
 					{accepted.map((friendship) => (
-						<FriendRingRow
+						<FriendRingCard
 							cameraDoorbell={friendship.friend.cameraDoorbell ?? false}
 							doorSkinId={friendship.friend.doorSkinId ?? "classic"}
 							key={friendship.friendshipId}
@@ -565,7 +585,7 @@ function FriendPickerPanel({
 							points={friendship.friend.points}
 						/>
 					))}
-				</View>
+				</ScrollView>
 			)}
 		</Animated.View>
 	);
@@ -601,7 +621,8 @@ function Pill({
 	);
 }
 
-function FriendRingRow({
+/** One friend's door as a carousel card — swipe to spin through friends. */
+function FriendRingCard({
 	name,
 	points,
 	doorSkinId,
@@ -619,61 +640,65 @@ function FriendRingRow({
 	const accentColor = useThemeColor("accent");
 	const foregroundColor = useThemeColor("foreground");
 	const mutedColor = useThemeColor("muted");
+	const surfaceColor = useThemeColor("surface");
 	const skin =
 		DOOR_SKINS.find((item) => item.id === doorSkinId) ?? DOOR_SKINS[0];
 
 	return (
 		<View
-			className="flex-row items-center gap-3 rounded-2xl p-2"
-			style={{ backgroundColor: `${foregroundColor}08` }}
+			style={{
+				alignItems: "center",
+				backgroundColor: surfaceColor,
+				borderColor: `${foregroundColor}14`,
+				borderRadius: 18,
+				borderWidth: 1,
+				padding: 8,
+				width: 178,
+			}}
 		>
 			{/* The friend's own door — its bell rings them; the door never opens here */}
-			<View style={{ borderRadius: 14, overflow: "hidden", width: 84 }}>
+			<View style={{ borderRadius: 14, overflow: "hidden" }}>
 				<DoorScene
 					cameraDoorbell={cameraDoorbell}
 					disabled={loading}
 					idleAction="ring"
 					onRing={onRing}
 					phase="idle"
-					size={84}
+					size={118}
 					skin={skin.theme}
 				/>
 			</View>
-
-			<View className="flex-1">
-				<Text className="font-bold text-sm" style={{ color: foregroundColor }}>
-					{name}
+			<Text
+				className="mt-2 text-center font-bold text-sm"
+				numberOfLines={1}
+				style={{ color: foregroundColor }}
+			>
+				{name}
+			</Text>
+			<Text className="text-xs" style={{ color: mutedColor }}>
+				{points.toLocaleString()} pts
+			</Text>
+			<Pressable
+				disabled={loading}
+				onPress={onRing}
+				style={({ pressed }) => ({
+					alignItems: "center",
+					backgroundColor: "rgba(249,115,22,0.14)",
+					borderRadius: 999,
+					flexDirection: "row",
+					gap: 5,
+					marginTop: 8,
+					opacity: pressed ? 0.7 : 1,
+					paddingHorizontal: 14,
+					paddingVertical: 7,
+					transform: [{ scale: pressed ? 0.97 : 1 }],
+				})}
+			>
+				<Ionicons color={accentColor} name="notifications-outline" size={15} />
+				<Text className="font-bold text-xs" style={{ color: accentColor }}>
+					Ring the bell
 				</Text>
-				<Text className="text-xs" style={{ color: mutedColor }}>
-					{points.toLocaleString()} pts
-				</Text>
-				<Pressable
-					disabled={loading}
-					onPress={onRing}
-					style={({ pressed }) => ({
-						alignItems: "center",
-						alignSelf: "flex-start",
-						backgroundColor: "rgba(249,115,22,0.14)",
-						borderRadius: 999,
-						flexDirection: "row",
-						gap: 5,
-						marginTop: 8,
-						opacity: pressed ? 0.7 : 1,
-						paddingHorizontal: 12,
-						paddingVertical: 6,
-						transform: [{ scale: pressed ? 0.97 : 1 }],
-					})}
-				>
-					<Ionicons
-						color={accentColor}
-						name="notifications-outline"
-						size={15}
-					/>
-					<Text className="font-bold text-xs" style={{ color: accentColor }}>
-						Ring the bell
-					</Text>
-				</Pressable>
-			</View>
+			</Pressable>
 		</View>
 	);
 }

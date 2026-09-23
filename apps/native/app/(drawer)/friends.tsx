@@ -25,7 +25,9 @@ export default function FriendsScreen() {
 	const accentColor = useThemeColor("accent");
 	const foregroundColor = useThemeColor("foreground");
 
-	const friends = useQuery(trpc.friends.list.queryOptions());
+	const friends = useQuery(
+		trpc.friends.list.queryOptions(undefined, { refetchInterval: 5000 })
+	);
 
 	const importMutation = useMutation(
 		trpc.friends.importContacts.mutationOptions({

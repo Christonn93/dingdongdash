@@ -28,6 +28,7 @@ export const user = sqliteTable("user", {
 		.notNull(),
 	id: text("id").primaryKey(),
 	image: text("image"),
+	lastLoginAt: integer("last_login_at", { mode: "timestamp_ms" }),
 	name: text("name").notNull(),
 	phoneHash: text("phone_hash").unique(),
 	points: integer("points").default(STARTING_POINTS).notNull(),
