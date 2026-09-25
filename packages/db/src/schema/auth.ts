@@ -6,6 +6,9 @@ export const user = sqliteTable("user", {
 	areaCity: text("area_city"),
 	areaCountry: text("area_country"),
 	avatarId: text("avatar_id"),
+	cameraDoorbell: integer("camera_doorbell", { mode: "boolean" })
+		.default(false)
+		.notNull(),
 	createdAt: integer("created_at", { mode: "timestamp_ms" })
 		.default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
 		.notNull(),
@@ -15,13 +18,6 @@ export const user = sqliteTable("user", {
 	dndFrom: integer("dnd_from").default(22).notNull(),
 	dndTo: integer("dnd_to").default(8).notNull(),
 	doorSkinId: text("door_skin_id").default("classic").notNull(),
-	cameraDoorbell: integer("camera_doorbell", { mode: "boolean" })
-		.default(false)
-		.notNull(),
-	ringSoundId: text("ring_sound_id").default("dingdong").notNull(),
-	spyCamera: integer("spy_camera", { mode: "boolean" })
-		.default(false)
-		.notNull(),
 	email: text("email").notNull().unique(),
 	emailVerified: integer("email_verified", { mode: "boolean" })
 		.default(false)
@@ -32,6 +28,10 @@ export const user = sqliteTable("user", {
 	name: text("name").notNull(),
 	phoneHash: text("phone_hash").unique(),
 	points: integer("points").default(STARTING_POINTS).notNull(),
+	ringSoundId: text("ring_sound_id").default("dingdong").notNull(),
+	spyCamera: integer("spy_camera", { mode: "boolean" })
+		.default(false)
+		.notNull(),
 	timeShieldArmed: integer("time_shield_armed", { mode: "boolean" })
 		.default(false)
 		.notNull(),

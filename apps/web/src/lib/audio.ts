@@ -26,7 +26,7 @@ function playOnReady(schedule: () => void): void {
 		return;
 	}
 	if (context.state === "suspended") {
-		void context.resume().then(schedule).catch(schedule);
+		context.resume().then(schedule).catch(schedule);
 		return;
 	}
 	schedule();
@@ -103,7 +103,9 @@ export function playMiss(): void {
  * A brass bell ding-dongs, a cottage knocker knocks, a Victorian crank
  * clatters, a modern touch pad pings, and a neon bell glides.
  */
-export function playRingSound(bellStyle: "bell" | "knocker" | "crank" | "touch" | "neon"): void {
+export function playRingSound(
+	bellStyle: "bell" | "knocker" | "crank" | "touch" | "neon"
+): void {
 	switch (bellStyle) {
 		case "knocker":
 			playKnock();

@@ -15,72 +15,103 @@ import { trpcClient } from "@/utils/trpc";
 
 const RING_CHANNEL_ID = "rings";
 
+/** True when running inside Expo Go, where remote push is unavailable since
+ * SDK 53 and expo-notifications throws. Push only works in a dev build. */
+function isExpoGo(): boolean {
+	return (
+		Constants.executionEnvironment ===
+		Constants.ExecutionEnvironment.StoreClient
+	);
+}
+
 export interface RingNotificationData {
 	ringId?: string;
 	type?: string;
 }
 
 /** Configure the foreground handler and (on Android) the high-priority ring
- * channel. Run once at app start. */
+ * channel. Run once at app start. Safely no-ops in Expo Go. */
 export function configureNotificationHandler(): void {
-	setNotificationHandler({
-		handleNotification: async () => ({
-			shouldPlaySound: true,
-			shouldSetBadge: false,
-			shouldShowBanner: true,
-			shouldShowList: true,
-		}),
-	});
-
-	if (Platform.OS === "android") {
-		setNotificationChannelAsync(RING_CHANNEL_ID, {
-			enableVibrate: true,
-			importance: AndroidImportance.MAX,
-			name: "Incoming rings",
-			sound: "default",
+	if (isExpoGo()) {
+		return;
+	}
+	try {
+		setNotificationHandler({
+			handleNotification: async () => ({
+				shouldPlaySound: true,
+				shouldSetBadge: false,
+				shouldShowBanner: true,
+				shouldShowList: true,
+			}),
 		});
+
+		if (Platform.OS === "android") {
+			setNotificationChannelAsync(RING_CHANNEL_ID, {
+				enableVibrate: true,
+				importance: AndroidImportance.MAX,
+				name: "Incoming rings",
+				sound: "default",
+			});
+		}
+	} catch {
+		// Push unavailable on this client — the app must still run.
 	}
 }
 
 /** Request permission, fetch the Expo push token, and register it with the
- * server. Returns null when permission is denied or no EAS project is
- * configured yet. */
+ * server. Returns null when permission is denied, running in Expo Go, or no
+ * EAS project is configured yet. */
 export async function registerForPushNotifications(): Promise<string | null> {
-	const { status: currentStatus } = await getPermissionsAsync();
-	let status = currentStatus;
-	if (status !== "granted") {
-		const { status: requestedStatus } = await requestPermissionsAsync();
-		status = requestedStatus;
-	}
-	if (status !== "granted") {
+	if (isExpoGo()) {
 		return null;
 	}
+	try {
+		const { status: currentStatus } = await getPermissionsAsync();
+		let status = currentStatus;
+		if (status !== "granted") {
+			const { status: requestedStatus } = await requestPermissionsAsync();
+			status = requestedStatus;
+		}
+		if (status !== "granted") {
+			return null;
+		}
 
-	const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-	if (!projectId) {
+		const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+		if (!projectId) {
+			return null;
+		}
+
+		const { data: token } = await getExpoPushTokenAsync({ projectId });
+		await trpcClient.users.registerDeviceToken.mutate({
+			platform: Platform.OS === "ios" ? "ios" : "android",
+			token,
+		});
+		return token;
+	} catch {
 		return null;
 	}
-
-	const { data: token } = await getExpoPushTokenAsync({ projectId });
-	await trpcClient.users.registerDeviceToken.mutate({
-		platform: Platform.OS === "ios" ? "ios" : "android",
-		token,
-	});
-	return token;
 }
 
-/** Subscribe to taps on notifications. Returns an unsubscribe function. */
+/** Subscribe to taps on notifications. Returns an unsubscribe function.
+ * Safely returns a no-op in Expo Go. */
 export function listenForRingNotifications(
 	onRing: (ringId: string) => void
 ): () => void {
-	const subscription = addNotificationResponseReceivedListener(
-		(response: NotificationResponse) => {
-			const data = response.notification.request.content
-				.data as RingNotificationData;
-			if (data.type === "ring" && data.ringId) {
-				onRing(data.ringId);
+	if (isExpoGo()) {
+		return () => undefined;
+	}
+	try {
+		const subscription = addNotificationResponseReceivedListener(
+			(response: NotificationResponse) => {
+				const data = response.notification.request.content
+					.data as RingNotificationData;
+				if (data.type === "ring" && data.ringId) {
+					onRing(data.ringId);
+				}
 			}
-		}
-	);
-	return () => subscription.remove();
+		);
+		return () => subscription.remove();
+	} catch {
+		return () => undefined;
+	}
 }

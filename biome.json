@@ -29,7 +29,13 @@
       "!**/.hutch",
       "!**/.agents",
       "!**/migrations",
-      "!**/drizzle.config.ts"
+      "!**/drizzle.config.ts",
+      "!**/src/env.ts",
+      "!**/cloudflare-env.d.ts",
+      "!packages/ui",
+      "!apps/desktop",
+      "!**/favicon.svg",
+      "!packages/db/src/schema/index.ts"
     ]
   },
   "formatter": {

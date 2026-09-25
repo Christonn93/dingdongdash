@@ -30,7 +30,10 @@ export default function LeaderboardScreen() {
 		})
 	);
 	const global = useQuery(
-		trpc.leaderboard.getGlobal.queryOptions({ cursor: 0, limit: 25 }, { refetchInterval: 5000 })
+		trpc.leaderboard.getGlobal.queryOptions(
+			{ cursor: 0, limit: 25 },
+			{ refetchInterval: 5000 }
+		)
 	);
 	const more = useQuery(
 		trpc.leaderboard.getGlobal.queryOptions(

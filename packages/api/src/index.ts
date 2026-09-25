@@ -4,11 +4,13 @@ import type { Context } from "./context";
 
 export const t = initTRPC.context<Context>().create();
 
-export const router = t.router;
+const { procedure, router } = t;
 
-export const publicProcedure = t.procedure;
+export { router };
 
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const publicProcedure = procedure;
+
+export const protectedProcedure = procedure.use(({ ctx, next }) => {
 	if (!ctx.session) {
 		throw new TRPCError({
 			cause: "No session",

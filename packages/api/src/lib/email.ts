@@ -1,7 +1,7 @@
-export type EmailSendResult = {
-	status: "ok" | "skipped" | "error";
+export interface EmailSendResult {
 	message?: string;
-};
+	status: "ok" | "skipped" | "error";
+}
 
 function escapeHtml(value: string): string {
 	return value

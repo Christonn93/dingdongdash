@@ -24,8 +24,8 @@ export const queryClient = new QueryClient({
 export const trpcClient = createTRPCClient<AppRouter>({
 	links: [
 		httpBatchLink({
-			fetch(url, options) {
-				return fetch(url, {
+			fetch(_url, options) {
+				return fetch(_url, {
 					...options,
 					credentials: "include",
 				});

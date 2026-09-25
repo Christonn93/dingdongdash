@@ -1,7 +1,7 @@
 import type { Context as ApiContext } from "@dingdongdash/api/context";
 import { touchLastLogin } from "@dingdongdash/api/lib/last-login";
-import { settleExpiredRings } from "@dingdongdash/api/lib/rings";
 import { persistRegion } from "@dingdongdash/api/lib/region";
+import { settleExpiredRings } from "@dingdongdash/api/lib/rings";
 import type { Context as HonoContext } from "hono";
 
 import { ENV } from "./env.server";
